@@ -20,5 +20,7 @@ typedef struct bitvector_t {
   uint64_t_plist pBits;
 } bitvector_t;
 
+bitvector_t *bitvector_t_alloc(uint64_t nBits, uint8_t bZeroize);
+
 
 #endif
