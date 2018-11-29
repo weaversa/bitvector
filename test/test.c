@@ -26,10 +26,13 @@ int main() {
 
   fprintf(stderr, "z2 : [%d] = take`{121} z2 = %s\n", z2->nBits, bitvector_t_toHexString(z2));
 
+  bitvector_t *xor = bitvector_t_xor(t, t);
 
+  fprintf(stderr, "xor : [%d] = t ^ t = %s\n", xor->nBits, bitvector_t_toHexString(xor));
 
-
-
+  uint8_t equal = bitvector_t_equal(t, z);
+  
+  fprintf(stderr, "t == z ? %u\n", equal);
 
   bitvector_t_free(x);
   bitvector_t_free(y);

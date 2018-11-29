@@ -12,7 +12,7 @@ bitvector_t *bitvector_t_alloc(uint32_t nBits) {
   if(ret != NO_ERROR) return NULL;
 
   bv->bits.nLength = BITS_TO_WORDS(bv->nBits);
-  bitvector_t_clear(bv);
+  bitvector_t_zeroize(bv);
   return bv;
 }
 
@@ -21,8 +21,12 @@ void bitvector_t_free(bitvector_t *bv) {
   free(bv);
 }
 
-void bitvector_t_clear(bitvector_t *bv) {
+void bitvector_t_zeroize(bitvector_t *bv) {
   memset((void *)bv->bits.pList, 0, bv->bits.nLength * sizeof(uint64_t));
+}
+
+void bitvector_t_clean_highbits(bitvector_t *bv) {
+  bv->bits.pList[bv->bits.nLength-1] &= ~0 >> (64 - (bv->nBits&0x3f));
 }
 
 bitvector_t *bitvector_t_fromHexString(char *string, size_t length) {
@@ -53,6 +57,8 @@ char *bitvector_t_toHexString(bitvector_t *bv) {
   size_t i;
   if(bv == NULL) return NULL;
 
+  bitvector_t_clean_highbits(bv);
+  
   uint32_t length = bv->nBits/4 + ((bv->nBits%4) != 0);
 
   char *string = malloc(length + 1);
@@ -95,9 +101,9 @@ bitvector_t *bitvector_t_concat(bitvector_t *x, bitvector_t *y) {
   size_t length = x->bits.nLength;
   size_t i;
 
+  bitvector_t_clean_highbits(y);
   bitvector_t *ret = bitvector_t_copy(y);
   bitvector_t_widen(ret, x->nBits + y->nBits);
-  ret->bits.pList[start] &= ~0 >> (64 - (y->nBits&0x3f));
 
   for(i = start; i < start + length; i++) {
     ret->bits.pList[i] |= x->bits.pList[i-start] << (y->nBits&0x3f);
@@ -129,9 +135,6 @@ void bitvector_t_take_update(bitvector_t *bv, uint32_t nBits) {
   }
   bv->nBits = nBits;
   bv->bits.nLength = BITS_TO_WORDS(nBits);
-
-  //Clear the previous high bits
-  bv->bits.pList[bv->bits.nLength-1] &= ~0 >> (64 - (bv->nBits&0x3f));
 }
 
 bitvector_t *bitvector_t_take(bitvector_t *bv, uint32_t nBits) {
@@ -149,15 +152,13 @@ bitvector_t *bitvector_t_take(bitvector_t *bv, uint32_t nBits) {
   bv->bits.nLength = nLength_old;
   bv->nBits = nBits_old;
 
-  //Clear the previous high bits
-  ret->bits.pList[ret->bits.nLength-1] &= ~0 >> (64 - (ret->nBits&0x3f));
-
   return ret;
 }
 
 #define bitvector_t_zipWith_update(NAME, OP)                          \
 void bitvector_t_##NAME##_update(bitvector_t *x, bitvector_t *y) {    \
   size_t i;                                                           \
+  if(x == NULL || y == NULL) return;                                  \
   if(x->nBits != y->nBits) {                                          \
     fprintf(stderr, "Cannot NAME two vectors of different sizes.\n"); \
     return;                                                           \
@@ -169,6 +170,7 @@ void bitvector_t_##NAME##_update(bitvector_t *x, bitvector_t *y) {    \
 
 #define bitvector_t_zipWith(NAME, OP)                                 \
 bitvector_t *bitvector_t_##NAME(bitvector_t *x, bitvector_t *y) {     \
+  if(x == NULL || y == NULL) return NULL;                             \
   if(x->nBits != y->nBits) {                                          \
     fprintf(stderr, "Cannot XOR two vectors of different sizes.\n");  \
     return NULL;                                                      \
@@ -178,14 +180,30 @@ bitvector_t *bitvector_t_##NAME(bitvector_t *x, bitvector_t *y) {     \
   return ret;                                                         \
 }                                                                     \
 
-bitvector_t_zipWith_update(XOR, ^)
-bitvector_t_zipWith(XOR, ^)
+bitvector_t_zipWith_update(xor, ^)
+bitvector_t_zipWith(xor, ^)
 
-bitvector_t_zipWith_update(EQU, ==)
-bitvector_t_zipWith(EQU, ==)
+bitvector_t_zipWith_update(equ, ==)
+bitvector_t_zipWith(equ, ==)
 
-bitvector_t_zipWith_update(OR, |)
-bitvector_t_zipWith(OR, |)
+bitvector_t_zipWith_update(or, |)
+bitvector_t_zipWith(or, |)
 
-bitvector_t_zipWith_update(AND, &)
-bitvector_t_zipWith(AND, &)
+bitvector_t_zipWith_update(and, &)
+bitvector_t_zipWith(and, &)
+
+uint8_t bitvector_t_equal(bitvector_t *x, bitvector_t *y) {
+  size_t i;
+  if(x == y) return 1;
+  if(x == NULL || y == NULL) return 0;
+  if(x->nBits != y->nBits) return 0;
+
+  bitvector_t_clean_highbits(x);
+  bitvector_t_clean_highbits(y);
+  
+  for(i = 0; i < x->bits.nLength; i++) {
+    if(x->bits.pList[i] != y->bits.pList[i]) return 0;
+  }
+
+  return 1;
+}
