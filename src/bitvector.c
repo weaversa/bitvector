@@ -123,7 +123,7 @@ bitvector_t *bitvector_t_negate(bitvector_t *bv) {
 }
 
 void bitvector_t_take_update(bitvector_t *bv, uint32_t nBits) {
-  if(nBits > bv->bits.nLength) {
+  if(nBits > bv->nBits) {
     fprintf(stderr, "Cannot take %u bits from a bitvector_t with only %u bits.\n", nBits, bv->nBits);
     return;
   }
@@ -135,14 +135,23 @@ void bitvector_t_take_update(bitvector_t *bv, uint32_t nBits) {
 }
 
 bitvector_t *bitvector_t_take(bitvector_t *bv, uint32_t nBits) {
-  if(nBits > bv->bits.nLength) {
+  if(nBits > bv->nBits) {
     fprintf(stderr, "Cannot take %u bits from a bitvector_t with only %u bits.\n", nBits, bv->nBits);
     return NULL;
   }
-  size_t nLength = bv->bits.nLength;
+  size_t nLength_old = bv->bits.nLength;
+  uint32_t nBits_old = bv->nBits;
   bv->bits.nLength = BITS_TO_WORDS(nBits);
+  bv->nBits = nBits;
+
   bitvector_t *ret = bitvector_t_copy(bv);
-  bv->bits.nLength = nLength;
+
+  bv->bits.nLength = nLength_old;
+  bv->nBits = nBits_old;
+
+  //Clear the previous high bits
+  ret->bits.pList[ret->bits.nLength-1] &= ~0 >> (64 - (ret->nBits&0x3f));
+
   return ret;
 }
 

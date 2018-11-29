@@ -45,5 +45,7 @@ bitvector_t_zipWith_includes(OR)
 bitvector_t_zipWith_includes(AND)
 
 bitvector_t *bitvector_t_concat(bitvector_t *x, bitvector_t *y);
+void bitvector_t_take_update(bitvector_t *bv, uint32_t nBits);
+bitvector_t *bitvector_t_take(bitvector_t *bv, uint32_t nBits);
 
 #endif

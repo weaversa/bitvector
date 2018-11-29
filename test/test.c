@@ -18,6 +18,17 @@ int main() {
 
   fprintf(stderr, "z2 : [%d] = z # z = %s\n", z2->nBits, bitvector_t_toHexString(z2));
 
+  bitvector_t *t = bitvector_t_take(z2, 121);
+
+  fprintf(stderr, "t : [%d] = take`{121} z2 = %s\n", t->nBits, bitvector_t_toHexString(t));
+
+  bitvector_t_take_update(z2, 121);
+
+  fprintf(stderr, "z2 : [%d] = take`{121} z2 = %s\n", z2->nBits, bitvector_t_toHexString(z2));
+
+
+
+
 
 
   bitvector_t_free(x);
