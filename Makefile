@@ -45,7 +45,7 @@ lib/lib$(BITVECTORLIB).a: $(OBJECTS) Makefile
 	@$(RANLIB) $@
 
 test/test: test/test.c lib/lib$(BITVECTORLIB).a
-	$(CC) $(CFLAGS) $(LDFLAGS) test/test.c -o test/test
+	$(CC) $(CFLAGS) $(LDFLAGS) test/test.c -o test/test $(LIBS)
 
 clean:
 	rm -rf *~ */*~ $(OBJECTS) ./.depend test/test *.dSYM test/test.dSYM
