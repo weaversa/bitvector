@@ -26,7 +26,7 @@ void bitvector_t_zeroize(bitvector_t *bv) {
 }
 
 void bitvector_t_clean_highbits(bitvector_t *bv) {
-  bv->bits.pList[bv->bits.nLength-1] &= ~0 >> (64 - (bv->nBits&0x3f));
+  bv->bits.pList[bv->bits.nLength-1] &= (~(uint64_t)0) >> (64 - (bv->nBits&0x3f));
 }
 
 bitvector_t *bitvector_t_fromHexString(char *string, size_t length) {
@@ -202,7 +202,9 @@ uint8_t bitvector_t_equal(bitvector_t *x, bitvector_t *y) {
   bitvector_t_clean_highbits(y);
   
   for(i = 0; i < x->bits.nLength; i++) {
-    if(x->bits.pList[i] != y->bits.pList[i]) return 0;
+    if(x->bits.pList[i] != y->bits.pList[i]) {
+      return 0;
+    }
   }
 
   return 1;
