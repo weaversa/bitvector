@@ -30,22 +30,23 @@ bitvector_t *bitvector_t_fromHexString(char *string, size_t length);
 char *bitvector_t_toHexString(bitvector_t *bv);
 bitvector_t *bitvector_t_copy(bitvector_t *bv);
 void bitvector_t_widen(bitvector_t *bv, uint32_t nBits);
-void bitvector_t_negate_update(bitvector_t *bv);
+void bitvector_t_negateUpdate(bitvector_t *bv);
 bitvector_t *bitvector_t_negate(bitvector_t *bv);
-
+void bitvector_t_setBit(bitvector_t *bv, uint32_t index);
+void bitvector_t_unsetBit(bitvector_t *bv, uint32_t index);
 
 //Binary Boolean operators
-#define bitvector_t_zipWith_includes(NAME)                        \
-void bitvector_t_##NAME##_update(bitvector_t *x, bitvector_t *y); \
-bitvector_t *bitvector_t_##NAME(bitvector_t *x, bitvector_t *y);  \
+#define bitvector_t_zipWithIncludes(NAME)                        \
+void bitvector_t_##NAME##Update(bitvector_t *x, bitvector_t *y); \
+bitvector_t *bitvector_t_##NAME(bitvector_t *x, bitvector_t *y); \
 
-bitvector_t_zipWith_includes(xor)
-bitvector_t_zipWith_includes(equ)
-bitvector_t_zipWith_includes(or)
-bitvector_t_zipWith_includes(and)
+bitvector_t_zipWithIncludes(xor)
+bitvector_t_zipWithIncludes(equ)
+bitvector_t_zipWithIncludes(or)
+bitvector_t_zipWithIncludes(and)
 
 bitvector_t *bitvector_t_concat(bitvector_t *x, bitvector_t *y);
-void bitvector_t_take_update(bitvector_t *bv, uint32_t nBits);
+void bitvector_t_takeUpdate(bitvector_t *bv, uint32_t nBits);
 bitvector_t *bitvector_t_take(bitvector_t *bv, uint32_t nBits);
 
 uint8_t bitvector_t_equal(bitvector_t *x, bitvector_t *y);

@@ -25,7 +25,7 @@ void bitvector_t_zeroize(bitvector_t *bv) {
   memset((void *)bv->bits.pList, 0, bv->bits.nLength * sizeof(uint64_t));
 }
 
-void bitvector_t_clean_highbits(bitvector_t *bv) {
+void bitvector_t_cleanHighBits(bitvector_t *bv) {
   bv->bits.pList[bv->bits.nLength-1] &= (~(uint64_t)0) >> (64 - (bv->nBits&0x3f));
 }
 
@@ -57,7 +57,7 @@ char *bitvector_t_toHexString(bitvector_t *bv) {
   size_t i;
   if(bv == NULL) return NULL;
 
-  bitvector_t_clean_highbits(bv);
+  bitvector_t_cleanHighBits(bv);
   
   uint32_t length = bv->nBits/4 + ((bv->nBits%4) != 0);
 
@@ -101,7 +101,7 @@ bitvector_t *bitvector_t_concat(bitvector_t *x, bitvector_t *y) {
   size_t length = x->bits.nLength;
   size_t i;
 
-  bitvector_t_clean_highbits(y);
+  bitvector_t_cleanHighBits(y);
   bitvector_t *ret = bitvector_t_copy(y);
   bitvector_t_widen(ret, x->nBits + y->nBits);
 
@@ -115,7 +115,7 @@ bitvector_t *bitvector_t_concat(bitvector_t *x, bitvector_t *y) {
   return ret;
 }
 
-void bitvector_t_negate_update(bitvector_t *bv) {
+void bitvector_t_negateUpdate(bitvector_t *bv) {
   size_t i;
   for(i = 0; i < bv->bits.nLength; i++) {
     bv->bits.pList[i] = ~bv->bits.pList[i];
@@ -124,11 +124,11 @@ void bitvector_t_negate_update(bitvector_t *bv) {
 
 bitvector_t *bitvector_t_negate(bitvector_t *bv) {
   bitvector_t *ret = bitvector_t_copy(bv);
-  bitvector_t_negate_update(ret);
+  bitvector_t_negateUpdate(ret);
   return ret;
 }
 
-void bitvector_t_take_update(bitvector_t *bv, uint32_t nBits) {
+void bitvector_t_takeUpdate(bitvector_t *bv, uint32_t nBits) {
   if(nBits > bv->nBits) {
     fprintf(stderr, "Cannot take %u bits from a bitvector_t with only %u bits.\n", nBits, bv->nBits);
     return;
@@ -155,8 +155,32 @@ bitvector_t *bitvector_t_take(bitvector_t *bv, uint32_t nBits) {
   return ret;
 }
 
-#define bitvector_t_zipWith_update(NAME, OP)                          \
-void bitvector_t_##NAME##_update(bitvector_t *x, bitvector_t *y) {    \
+void bitvector_t_setBit(bitvector_t *bv, uint32_t index) {
+  if(bv == NULL) return;
+  if(index >= bv->nBits) {
+    fprintf(stderr, "Cannot set bit %u in a bitvector_t with only %u bits.\n", index, bv->nBits);
+    return;
+  }
+
+  bv->bits.pList[index >> 6] |= ((uint64_t) 1) << (index & 0x3f);
+}
+
+void bitvector_t_unsetBit(bitvector_t *bv, uint32_t index) {
+  if(bv == NULL) return;
+  if(index >= bv->nBits) {
+    fprintf(stderr, "Cannot unset bit %u in a bitvector_t with only %u bits.\n", index, bv->nBits);
+    return;
+  }
+
+  bv->bits.pList[index >> 6] &= ~(((uint64_t) 1) << (index & 0x3f));
+}
+
+//take a Slice?
+
+//popcount?
+
+#define bitvector_t_zipWithUpdate(NAME, OP)                           \
+void bitvector_t_##NAME##Update(bitvector_t *x, bitvector_t *y) {     \
   size_t i;                                                           \
   if(x == NULL || y == NULL) return;                                  \
   if(x->nBits != y->nBits) {                                          \
@@ -176,20 +200,20 @@ bitvector_t *bitvector_t_##NAME(bitvector_t *x, bitvector_t *y) {     \
     return NULL;                                                      \
   }                                                                   \
   bitvector_t *ret = bitvector_t_copy(x);                             \
-  bitvector_t_##NAME##_update(ret, y);                                \
+  bitvector_t_##NAME##Update(ret, y);                                 \
   return ret;                                                         \
 }                                                                     \
 
-bitvector_t_zipWith_update(xor, ^)
+bitvector_t_zipWithUpdate(xor, ^)
 bitvector_t_zipWith(xor, ^)
 
-bitvector_t_zipWith_update(equ, ==)
+bitvector_t_zipWithUpdate(equ, ==)
 bitvector_t_zipWith(equ, ==)
 
-bitvector_t_zipWith_update(or, |)
+bitvector_t_zipWithUpdate(or, |)
 bitvector_t_zipWith(or, |)
 
-bitvector_t_zipWith_update(and, &)
+bitvector_t_zipWithUpdate(and, &)
 bitvector_t_zipWith(and, &)
 
 uint8_t bitvector_t_equal(bitvector_t *x, bitvector_t *y) {
@@ -198,8 +222,8 @@ uint8_t bitvector_t_equal(bitvector_t *x, bitvector_t *y) {
   if(x == NULL || y == NULL) return 0;
   if(x->nBits != y->nBits) return 0;
 
-  bitvector_t_clean_highbits(x);
-  bitvector_t_clean_highbits(y);
+  bitvector_t_cleanHighBits(x);
+  bitvector_t_cleanHighBits(y);
   
   for(i = 0; i < x->bits.nLength; i++) {
     if(x->bits.pList[i] != y->bits.pList[i]) {

@@ -22,7 +22,7 @@ int main() {
 
   fprintf(stderr, "t : [%d] = take`{121} z2 = %s\n", t->nBits, bitvector_t_toHexString(t));
 
-  bitvector_t_take_update(z2, 121);
+  bitvector_t_takeUpdate(z2, 121);
 
   fprintf(stderr, "z2 : [%d] = take`{121} z2 = %s\n", z2->nBits, bitvector_t_toHexString(z2));
 
@@ -30,6 +30,19 @@ int main() {
 
   fprintf(stderr, "xor : [%d] = t ^ t = %s\n", xor->nBits, bitvector_t_toHexString(xor));
 
+  bitvector_t_setBit(xor, 0);
+  
+  fprintf(stderr, "xor : [%d] = t ^ t = %s\n", xor->nBits, bitvector_t_toHexString(xor));
+
+  bitvector_t_setBit(xor, 63);
+  
+  fprintf(stderr, "xor : [%d] = t ^ t = %s\n", xor->nBits, bitvector_t_toHexString(xor));
+
+  bitvector_t_setBit(xor, 120);
+  bitvector_t_unsetBit(xor, 63);
+  
+  fprintf(stderr, "xor : [%d] = t ^ t = %s\n", xor->nBits, bitvector_t_toHexString(xor));
+  
   uint8_t equal = bitvector_t_equal(t, z);
   
   fprintf(stderr, "t == z ? %u\n", equal);
