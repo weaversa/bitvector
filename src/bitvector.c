@@ -176,8 +176,39 @@ void bitvector_t_unsetBit(bitvector_t *bv, uint32_t index) {
 }
 
 //take a Slice?
+void bitvector_t_sliceUpdate(bitvector_t *slice, bitvector_t *x, uint32_t b0, uint32_t b1) {
+  if(slice == NULL || x == NULL) return;
+  if(b0 > b1) {
+    fprintf(stderr, "End of slice is before the beginning.\n");
+    return;
+  }
+
+  if(slice->nBits < (b1-b0)) {
+    bitvector_t_widen(slice, b1-b0);
+  } else if(slice->nBits > (b1-b0)) {
+    bitvector_t_takeUpdate(slice, b1-b0);
+  }
+
+  if(x->nBits < (b1-b0)) {
+    fprintf(stderr, "Cannot take a slice of size %u from a bitvector_t with only %u bits.\n", b1-b0, x->nBits);
+    return;
+  }
+  
+  size_t start  = b0 >> 6;
+  size_t length = (b1-b0) >> 6;
+  size_t *i;
+  for(i = 0; i < length; i++) {
+    slice->bits.pList[i] = x->bits.pList[start + i] >> (b0&0x3f);
+    if(start + i + 1 < ) { //???
+      ret->bits.pList[i] |= x->bits.pList[start + i + 1] << (64 - (b&0x3f)); //???
+    }
+  }  
+
+}
 
 //popcount?
+
+//peek? getBit?
 
 #define bitvector_t_zipWithUpdate(NAME, OP)                           \
 void bitvector_t_##NAME##Update(bitvector_t *x, bitvector_t *y) {     \
