@@ -20,11 +20,11 @@ int main() {
 
   bitvector_t *t = bitvector_t_take(z2, 121);
 
-  fprintf(stderr, "t : [%d] = take`{121} z2 = %s\n", t->nBits, bitvector_t_toHexString(t));
+  fprintf(stderr, "t : [%d] = take`{back=121} z2 = %s\n", t->nBits, bitvector_t_toHexString(t));
 
   bitvector_t_takeUpdate(z2, 121);
 
-  fprintf(stderr, "z2 : [%d] = take`{121} z2 = %s\n", z2->nBits, bitvector_t_toHexString(z2));
+  fprintf(stderr, "z2 : [%d] = take`{back=121} z2 = %s\n", z2->nBits, bitvector_t_toHexString(z2));
 
   bitvector_t *xor = bitvector_t_xor(t, t);
 
@@ -47,10 +47,30 @@ int main() {
   
   fprintf(stderr, "t == z ? %u\n", equal);
 
+  bitvector_t *slice = bitvector_t_alloc(102);
+
+  bitvector_t_sliceUpdate(slice, z2, 16, 84);
+
+  fprintf(stderr, "slice : [%d] = z2!![84--16] = %s\n", slice->nBits, bitvector_t_toHexString(slice));
+
+  equal = bitvector_t_equal(slice, z2);
+  
+  fprintf(stderr, "t == z ? %u\n", equal);
+
+  fprintf(stderr, "slice!0 == %u\n", bitvector_t_getBit(slice, 0));
+
+  fprintf(stderr, "popcount(slice) == %u\n", bitvector_t_popcount(slice));
+
+  bitvector_t *slice2 = bitvector_t_slice(z, 43, 81);
+
+  fprintf(stderr, "z!![81..43] = %s\n", bitvector_t_toHexString(slice2));
+  
   bitvector_t_free(x);
   bitvector_t_free(y);
   bitvector_t_free(z);
   bitvector_t_free(z2);
+  bitvector_t_free(slice);
+  bitvector_t_free(slice2);
 
   return 0;
 }

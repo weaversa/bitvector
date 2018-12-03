@@ -32,9 +32,11 @@ bitvector_t *bitvector_t_copy(bitvector_t *bv);
 void bitvector_t_widen(bitvector_t *bv, uint32_t nBits);
 void bitvector_t_negateUpdate(bitvector_t *bv);
 bitvector_t *bitvector_t_negate(bitvector_t *bv);
+uint8_t bitvector_t_getBit(bitvector_t *bv, uint32_t index);
 void bitvector_t_setBit(bitvector_t *bv, uint32_t index);
 void bitvector_t_unsetBit(bitvector_t *bv, uint32_t index);
-
+uint32_t bitvector_t_popcount(bitvector_t *bv);
+  
 //Binary Boolean operators
 #define bitvector_t_zipWithIncludes(NAME)                        \
 void bitvector_t_##NAME##Update(bitvector_t *x, bitvector_t *y); \
@@ -48,7 +50,8 @@ bitvector_t_zipWithIncludes(and)
 bitvector_t *bitvector_t_concat(bitvector_t *x, bitvector_t *y);
 void bitvector_t_takeUpdate(bitvector_t *bv, uint32_t nBits);
 bitvector_t *bitvector_t_take(bitvector_t *bv, uint32_t nBits);
-
 uint8_t bitvector_t_equal(bitvector_t *x, bitvector_t *y);
+void bitvector_t_sliceUpdate(bitvector_t *slice, bitvector_t *x, uint32_t b0, uint32_t b1);
+bitvector_t *bitvector_t_slice(bitvector_t *bv, uint32_t b0, uint32_t b1);
 
 #endif

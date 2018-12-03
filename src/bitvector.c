@@ -66,7 +66,7 @@ char *bitvector_t_toHexString(bitvector_t *bv) {
 
   for(i = 0; i < length; i++) {
     char c[2];
-    snprintf(c, 2, "%llx", (bv->bits.pList[i>>4] >> ((i&0xf)*4)) & 0xf);
+    snprintf(c, 2, "%lx", (bv->bits.pList[i>>4] >> ((i&0xf)*4)) & 0xf);
     string[length-i - 1] = c[0];
   }
 
@@ -155,6 +155,16 @@ bitvector_t *bitvector_t_take(bitvector_t *bv, uint32_t nBits) {
   return ret;
 }
 
+uint8_t bitvector_t_getBit(bitvector_t *bv, uint32_t index) {
+  if(bv == NULL) return 0;
+  if(index >= bv->nBits) {
+    fprintf(stderr, "Cannot get bit %u in a bitvector_t with only %u bits.\n", index, bv->nBits);
+    return 0;
+  }
+
+  return (uint8_t) ((uint64_t) 1) & (bv->bits.pList[index >> 6] >> (index & 0x3f));
+}
+
 void bitvector_t_setBit(bitvector_t *bv, uint32_t index) {
   if(bv == NULL) return;
   if(index >= bv->nBits) {
@@ -175,7 +185,19 @@ void bitvector_t_unsetBit(bitvector_t *bv, uint32_t index) {
   bv->bits.pList[index >> 6] &= ~(((uint64_t) 1) << (index & 0x3f));
 }
 
-//take a Slice?
+uint32_t bitvector_t_popcount(bitvector_t *bv) {
+  bitvector_t_cleanHighBits(bv);
+
+  size_t i;
+  uint32_t ret = 0;
+
+  for(i = 0; i < bv->bits.nLength; i++) {
+    ret += __builtin_popcountll(bv->bits.pList[i]);
+  }
+
+  return ret;
+}
+
 void bitvector_t_sliceUpdate(bitvector_t *slice, bitvector_t *x, uint32_t b0, uint32_t b1) {
   if(slice == NULL || x == NULL) return;
   if(b0 > b1) {
@@ -195,20 +217,21 @@ void bitvector_t_sliceUpdate(bitvector_t *slice, bitvector_t *x, uint32_t b0, ui
   }
   
   size_t start  = b0 >> 6;
-  size_t length = (b1-b0) >> 6;
-  size_t *i;
+  size_t length = ((b1-b0) >> 6) + 1;
+  size_t i;
   for(i = 0; i < length; i++) {
     slice->bits.pList[i] = x->bits.pList[start + i] >> (b0&0x3f);
-    if(start + i + 1 < ) { //???
-      ret->bits.pList[i] |= x->bits.pList[start + i + 1] << (64 - (b&0x3f)); //???
+    if((start + i + 1 < x->bits.nLength) && ((b0&0x3f) != 0)) {
+      slice->bits.pList[i] |= x->bits.pList[start + i + 1] << (64 - (b0&0x3f));
     }
-  }  
-
+  }
 }
 
-//popcount?
-
-//peek? getBit?
+bitvector_t *bitvector_t_slice(bitvector_t *bv, uint32_t b0, uint32_t b1) {
+  bitvector_t *slice = bitvector_t_alloc(b1-b0);
+  bitvector_t_sliceUpdate(slice, bv, b0, b1);
+  return slice;
+}
 
 #define bitvector_t_zipWithUpdate(NAME, OP)                           \
 void bitvector_t_##NAME##Update(bitvector_t *x, bitvector_t *y) {     \
