@@ -7,9 +7,12 @@
 #ifndef BITVECTOR_H
 #define BITVECTOR_H
 
+#define __STDC_FORMAT_MACROS
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <ctype.h>
 
 #include "c_list_types/include/c_list_types.h"

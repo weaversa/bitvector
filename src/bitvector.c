@@ -66,7 +66,7 @@ char *bitvector_t_toHexString(bitvector_t *bv) {
 
   for(i = 0; i < length; i++) {
     char c[2];
-    snprintf(c, 2, "%lx", (bv->bits.pList[i>>4] >> ((i&0xf)*4)) & 0xf);
+    snprintf(c, 2, "%" PRIx64, (bv->bits.pList[i>>4] >> ((i&0xf)*4)) & 0xf);
     string[length-i - 1] = c[0];
   }
 

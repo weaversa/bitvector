@@ -8,12 +8,13 @@ OBJECTS = $(SOURCES:src/%.c=obj/%.o)
 
 BITVECTORLIB = bitvector
 CC = gcc
-DBG = -g -Wall -fstack-protector-all -pedantic
-OPT = #-march=native -O3 -DNDEBUG -ffast-math -fomit-frame-pointer
+VERIFY = #-emit-llvm
+DBG = #-g -Wall -fstack-protector-all -pedantic
+OPT = -march=native -O3 -DNDEBUG -ffast-math -fomit-frame-pointer
 INCLUDES = -Iinclude
 LIBS = -l$(BITVECTORLIB)
 LDFLAGS = -Llib
-CFLAGS = -std=gnu99 $(DBG) $(OPT) $(INCLUDES)
+CFLAGS = -std=gnu99 $(DBG) $(OPT) $(VERIFY) $(INCLUDES)
 AR = ar r
 RANLIB = ranlib
 
