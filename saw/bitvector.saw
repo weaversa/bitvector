@@ -1,0 +1,64 @@
+//import "Salsa20.cry" as Salsa20;
+
+let alloc_init ty v = do {
+  p <- crucible_alloc ty;
+  crucible_points_to p v;
+  return p;
+};
+
+let ptr_to_fresh n ty = do {
+  x <- crucible_fresh_var n ty;
+  p <- alloc_init ty (crucible_term x);
+  return (x, p);
+};
+
+let {{
+
+  type uint64_t_list a = {nLength:[64], nLength_max:[64], pList:[a][64], nResizeAmt:[64]}
+
+  type bitvector_t nBits = {nBits:[32], bits:uint64_t_list(nBits/^64)}
+}};
+
+
+bitvector_bc <- llvm_load_module "../obj/bitvector.bc";
+
+let bitvector_t_alloc_spec = do {
+  crucible_execute_func [crucible_term {{ 64 : [32] }}];
+
+  crucible_return (crucible_term {{ zero : bitvector_t 64 }});
+
+};
+
+crucible_llvm_result <- crucible_llvm_verify bitvector_bc "bitvector_t_alloc"
+  [] false bitvector_t_alloc_spec z3;
+
+
+
+
+/*
+let fresh_uint64_t_list (n: String) len nLength nLength_max pList nResizeAmt = do {
+  nLength_v <- crucible_fresh_var (str_concat n "->nLength") (llvm_int 64);
+  nLength_max_v <- crucible_fresh_var (str_concat n "->nLength_max") (llvm_int 64);
+  pList_v <- crucible_fresh_var (str_concat n "->pList") (llvm_array (llvm_int len));
+  nResizeAmt_v <- crucible_fresh_var (str_concat n "->nResizeAmt") (llvm_int 64);
+  let x = {{ {nLength=nLength, nLength_max=nLength_max, pList=pList, nResizeAmt=nResizeAmt} : uint64_t_list len }};
+  p_x <- alloc_init (llvm_struct "struct.uint64_t_list")
+    (crucible_struct [ crucible_term nLength, crucible_term nLength_max, crucible_term pList, crucible_term nResizeAmt]);
+  return (x, p_x);
+};
+
+_input <- crucible_fresh_var (str_concat n "->input") (llvm_array 16 u32);
+  let x = {{ {input = _input} }};
+  p_x <- alloc_init (llvm_struct "struct.ECRYPT_ctx") (crucible_struct [ crucible_term _input ]);
+  return (x, p_x);
+};
+		
+
+let uint64_t_list nLength nLength_max pList nResizeAmt =
+  alloc_init (llvm_struct "struct.uint64_t_list"
+    (crucible_struct [nLength, nLength_max, pList, nResizeAmt]);
+
+let bitvector_t nBits bits =
+  llvm_struct "struct.bitvector_t"
+    (nBits, bits);
+*/
