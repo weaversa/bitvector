@@ -88,12 +88,15 @@ void bitvector_t_widen(bitvector_t *bv, uint32_t nBits) {
     fprintf(stderr, "Cannot widen a bitvector_t of %d bits to %d bits.\n", bv->nBits, nBits);
     return;
   }
+
   bv->nBits = nBits;
-  size_t length = bv->bits.nLength;
-  uint64_t_list_resize(&bv->bits, BITS_TO_WORDS(nBits));
+  size_t old_length = bv->bits.nLength;
+  uint8_t ret = uint64_t_list_resize(&bv->bits, BITS_TO_WORDS(nBits));
+  if(ret != NO_ERROR) return;
+
   bv->bits.nLength = BITS_TO_WORDS(bv->nBits);
 
-  memset((void *)(bv->bits.pList+length), 0, (bv->bits.nLength - length) * sizeof(uint64_t));
+  memset((void *)(bv->bits.pList+old_length), 0, (bv->bits.nLength - old_length) * sizeof(uint64_t));
 }
 
 bitvector_t *bitvector_t_concat(bitvector_t *x, bitvector_t *y) {
@@ -107,7 +110,7 @@ bitvector_t *bitvector_t_concat(bitvector_t *x, bitvector_t *y) {
 
   for(i = start; i < start + length; i++) {
     ret->bits.pList[i] |= x->bits.pList[i-start] << (y->nBits&0x3f);
-    if(i+1 <= start+length) {
+    if(i + 1 < ret->bits.nLength) {
       ret->bits.pList[i+1] = x->bits.pList[i-start] >> (64 - (y->nBits&0x3f));
     }
   }

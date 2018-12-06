@@ -9,8 +9,8 @@ OBJECTS = $(SOURCES:src/%.c=obj/%.o)
 BITVECTORLIB = bitvector
 CC = gcc
 VERIFY = #-emit-llvm
-DBG = #-g -Wall -fstack-protector-all -pedantic
-OPT = -march=native -O3 -DNDEBUG -ffast-math -fomit-frame-pointer
+DBG = -g -Wall -fstack-protector-all -pedantic
+OPT = #-march=native -O3 -DNDEBUG -ffast-math -fomit-frame-pointer
 INCLUDES = -Iinclude
 LIBS = -l$(BITVECTORLIB)
 LDFLAGS = -Llib
