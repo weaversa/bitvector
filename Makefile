@@ -6,9 +6,10 @@ SOURCES = src/bitvector.c
 
 OBJECTS = $(SOURCES:src/%.c=obj/%.o)
 
+BCOBJECTS = $(SOURCES:src/%.c=obj/%.bc)
+
 BITVECTORLIB = bitvector
 CC = gcc
-VERIFY = #-emit-llvm
 DBG = -g -Wall -fstack-protector-all -pedantic
 OPT = #-march=native -O3 -DNDEBUG -ffast-math -fomit-frame-pointer
 INCLUDES = -Iinclude
@@ -19,6 +20,8 @@ AR = ar r
 RANLIB = ranlib
 
 all: depend lib/lib$(BITVECTORLIB).a
+
+saw: $(BCOBJECTS)
 
 depend: .depend
 .depend: $(SOURCES)
@@ -45,11 +48,16 @@ lib/lib$(BITVECTORLIB).a: $(OBJECTS) Makefile
 	@$(AR) $@ $(OBJECTS)
 	@$(RANLIB) $@
 
+$(BCOBJECTS): obj/%.bc : src/%.c Makefile
+	@echo "Compiling "$<""
+	@[ -d obj ] || mkdir -p obj
+	@clang -emit-llvm $(CFLAGS) -c $< -o $@
+
 test/test: test/test.c lib/lib$(BITVECTORLIB).a
 	$(CC) $(CFLAGS) $(LDFLAGS) test/test.c -o test/test $(LIBS)
 
 clean:
-	rm -rf *~ */*~ $(OBJECTS) ./.depend test/test *.dSYM test/test.dSYM
+	rm -rf *~ */*~ $(OBJECTS) $(BCOBJECTS) ./.depend test/test *.dSYM test/test.dSYM
 
 edit:
 	emacs -nw $(EXTRAS) $(HEADERS) $(SOURCES)
