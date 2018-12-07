@@ -33,19 +33,22 @@ let bitvector_t_alloc_spec = do {
   (List, pList) <- ptr_to_fresh "bits->pList" (llvm_array 1 (llvm_int 64));
   nResizeAmt <- crucible_fresh_var "bits->nResizeAmt" (llvm_int 64);
 
-  bits <- (crucible_struct [
-    crucible_term nLength,
-    crucible_term nLength_max,
-    pList,
-    crucible_term nResizeAmt]);
-
-  pbv <- crucible_alloc (llvm_struct "struct.bitvector_t");  
-  
   nBits <- crucible_fresh_var "nBits" (llvm_int 32);
 
-  crucible_points_to pbv (crucible_struct [crucible_term nBits, crucible_term bits]);
+  pbv <- crucible_alloc (llvm_struct "struct.bitvector_t");  
+  crucible_points_to pbv (crucible_struct [crucible_term nBits,
+    crucible_struct [
+      crucible_term nLength,
+      crucible_term nLength_max,
+      pList,
+      crucible_term nResizeAmt]]);
   
   crucible_return pbv;
+
+  crucible_postcond {{ nBits == 64 }};
+  crucible_postcond {{ nLength == 1 }};
+  crucible_postcond {{ nLength_max == 1 }};
+  crucible_postcond {{ List == [0] }};
 };
 
 crucible_llvm_result <- crucible_llvm_verify bitvector_bc "bitvector_t_alloc" [] false bitvector_t_alloc_spec z3;
