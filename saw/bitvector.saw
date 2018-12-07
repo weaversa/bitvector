@@ -14,23 +14,41 @@ let ptr_to_fresh n ty = do {
 
 let {{
 
-  type uint64_t_list a = {nLength:[64], nLength_max:[64], pList:[a][64], nResizeAmt:[64]}
+  type uint64_t_list a = ([64], [64], [a][64], [64])
 
-  type bitvector_t nBits = {nBits:[32], bits:uint64_t_list(nBits/^64)}
+  type bitvector_t nBits = ([32], uint64_t_list(nBits/^64))
 }};
 
 
 bitvector_bc <- llvm_load_module "../obj/bitvector.bc";
 
+
+
 let bitvector_t_alloc_spec = do {
+
   crucible_execute_func [crucible_term {{ 64 : [32] }}];
 
-  crucible_return (crucible_term {{ zero : bitvector_t 64 }});
+  nLength <- crucible_fresh_var "bits->nLength" (llvm_int 64);
+  nLength_max <- crucible_fresh_var "bits->nLength_max" (llvm_int 64);
+  (List, pList) <- ptr_to_fresh "bits->pList" (llvm_array 1 (llvm_int 64));
+  nResizeAmt <- crucible_fresh_var "bits->nResizeAmt" (llvm_int 64);
 
+  bits <- (crucible_struct [
+    crucible_term nLength,
+    crucible_term nLength_max,
+    pList,
+    crucible_term nResizeAmt]);
+
+  pbv <- crucible_alloc (llvm_struct "struct.bitvector_t");  
+  
+  nBits <- crucible_fresh_var "nBits" (llvm_int 32);
+
+  crucible_points_to pbv (crucible_struct [crucible_term nBits, crucible_term bits]);
+  
+  crucible_return pbv;
 };
 
-crucible_llvm_result <- crucible_llvm_verify bitvector_bc "bitvector_t_alloc"
-  [] false bitvector_t_alloc_spec z3;
+crucible_llvm_result <- crucible_llvm_verify bitvector_bc "bitvector_t_alloc" [] false bitvector_t_alloc_spec z3;
 
 
 

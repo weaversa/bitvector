@@ -1,4 +1,4 @@
-EXTRAS = Makefile LICENSE README.md
+EXTRAS = Makefile LICENSE README.md saw/bitvector.saw
 
 HEADERS = include/bitvector.h
 
