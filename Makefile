@@ -21,8 +21,6 @@ RANLIB = ranlib
 
 all: depend lib/lib$(BITVECTORLIB).a
 
-saw: $(BCOBJECTS)
-
 depend: .depend
 .depend: $(SOURCES)
 	@echo "Building dependencies" 
@@ -55,6 +53,9 @@ $(BCOBJECTS): obj/%.bc : src/%.c Makefile
 
 test/test: test/test.c lib/lib$(BITVECTORLIB).a
 	$(CC) $(CFLAGS) $(LDFLAGS) test/test.c -o test/test $(LIBS)
+
+saw: saw/bitvector.saw $(BCOBJECTS)
+	saw $<
 
 clean:
 	rm -rf *~ */*~ $(OBJECTS) $(BCOBJECTS) ./.depend test/test *.dSYM test/test.dSYM

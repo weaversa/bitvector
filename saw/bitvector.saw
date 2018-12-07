@@ -1,5 +1,3 @@
-//import "Salsa20.cry" as Salsa20;
-
 let alloc_init ty v = do {
   p <- crucible_alloc ty;
   crucible_points_to p v;
@@ -13,27 +11,17 @@ let ptr_to_fresh n ty = do {
 };
 
 let {{
-
   type uint64_t_list a = ([64], [64], [a][64], [64])
-
   type bitvector_t nBits = ([32], uint64_t_list(nBits/^64))
 }};
 
+let bitvector_t n name = do {
+  nLength <- crucible_fresh_var (str_concat name ".bits->nLength") (llvm_int 64);
+  nLength_max <- crucible_fresh_var (str_concat name ".bits->nLength_max") (llvm_int 64);
+  (List, pList) <- ptr_to_fresh (str_concat name ".bits->pList") (llvm_array (eval_int {{ `(n /^ 64) : [32] }}) (llvm_int 64));
+  nResizeAmt <- crucible_fresh_var (str_concat name ".bits->nResizeAmt") (llvm_int 64);
 
-bitvector_bc <- llvm_load_module "../obj/bitvector.bc";
-
-
-
-let bitvector_t_alloc_spec = do {
-
-  crucible_execute_func [crucible_term {{ 64 : [32] }}];
-
-  nLength <- crucible_fresh_var "bits->nLength" (llvm_int 64);
-  nLength_max <- crucible_fresh_var "bits->nLength_max" (llvm_int 64);
-  (List, pList) <- ptr_to_fresh "bits->pList" (llvm_array 1 (llvm_int 64));
-  nResizeAmt <- crucible_fresh_var "bits->nResizeAmt" (llvm_int 64);
-
-  nBits <- crucible_fresh_var "nBits" (llvm_int 32);
+  nBits <- crucible_fresh_var (str_concat name ".nBits") (llvm_int 32);
 
   pbv <- crucible_alloc (llvm_struct "struct.bitvector_t");  
   crucible_points_to pbv (crucible_struct [crucible_term nBits,
@@ -42,44 +30,88 @@ let bitvector_t_alloc_spec = do {
       crucible_term nLength_max,
       pList,
       crucible_term nResizeAmt]]);
+
+  return(pbv, nBits, nLength, nLength_max, List, pList, nResizeAmt);
+};
+
+let bitvector_t' n name pbv = do {
+  nLength <- crucible_fresh_var (str_concat name ".bits->nLength") (llvm_int 64);
+  nLength_max <- crucible_fresh_var (str_concat name ".bits->nLength_max") (llvm_int 64);
+  (List, pList) <- ptr_to_fresh (str_concat name ".bits->pList") (llvm_array (eval_int {{ `(n /^ 64) : [32] }}) (llvm_int 64));
+  nResizeAmt <- crucible_fresh_var (str_concat name ".bits->nResizeAmt") (llvm_int 64);
+
+  nBits <- crucible_fresh_var (str_concat name ".nBits") (llvm_int 32);
+
+  crucible_points_to pbv (crucible_struct [crucible_term nBits,
+    crucible_struct [
+      crucible_term nLength,
+      crucible_term nLength_max,
+      pList,
+      crucible_term nResizeAmt]]);
+
+  return(nBits, nLength, nLength_max, List, pList, nResizeAmt);
+};
+
+let bitvector_t_alloc_spec (n : Int) = do {
+  crucible_execute_func [crucible_term {{ `n : [32] }}];
+
+  (pbv, nBits, nLength, nLength_max, List, pList, nResizeAmt) <- bitvector_t n "bv_alloc";
   
   crucible_return pbv;
 
-  crucible_postcond {{ nBits == 64 }};
-  crucible_postcond {{ nLength == 1 }};
-  crucible_postcond {{ nLength_max == 1 }};
-  crucible_postcond {{ List == [0] }};
+  crucible_postcond {{ nBits == `n }};
+  crucible_postcond {{ nLength == `(n /^ 64) }};
+  crucible_postcond {{ nLength_max == `(n /^ 64) }};
+  crucible_postcond {{ List == (zero : [n /^ 64][64]) }};
+  crucible_postcond {{ nResizeAmt == 1 }};
 };
 
-crucible_llvm_result <- crucible_llvm_verify bitvector_bc "bitvector_t_alloc" [] false bitvector_t_alloc_spec z3;
+let bitvector_t_zeroize_spec (n : Int) = do {
+  (pbv, nBits, nLength, nLength_max, List, pList, nResizeAmt) <- bitvector_t n "bv_zeroize";
 
+  crucible_precond {{ nBits == `n }};
+  crucible_precond {{ nLength == `(n /^ 64) }};
+  crucible_precond {{ nLength_max == `(n /^ 64) }};
+  crucible_precond {{ nResizeAmt == 1 }};
 
+  crucible_execute_func [pbv];
 
+  (nBits', nLength', nLength_max', List', pList', nResizeAmt') <- bitvector_t' n "bv_zeroize'" pbv;
 
-/*
-let fresh_uint64_t_list (n: String) len nLength nLength_max pList nResizeAmt = do {
-  nLength_v <- crucible_fresh_var (str_concat n "->nLength") (llvm_int 64);
-  nLength_max_v <- crucible_fresh_var (str_concat n "->nLength_max") (llvm_int 64);
-  pList_v <- crucible_fresh_var (str_concat n "->pList") (llvm_array (llvm_int len));
-  nResizeAmt_v <- crucible_fresh_var (str_concat n "->nResizeAmt") (llvm_int 64);
-  let x = {{ {nLength=nLength, nLength_max=nLength_max, pList=pList, nResizeAmt=nResizeAmt} : uint64_t_list len }};
-  p_x <- alloc_init (llvm_struct "struct.uint64_t_list")
-    (crucible_struct [ crucible_term nLength, crucible_term nLength_max, crucible_term pList, crucible_term nResizeAmt]);
-  return (x, p_x);
+  crucible_postcond {{ nBits' == `n }};
+  crucible_postcond {{ nLength' == `(n /^ 64) }};
+  crucible_postcond {{ nLength_max' == `(n /^ 64) }};
+  crucible_postcond {{ List' == (zero : [n /^ 64][64]) }};
+  crucible_postcond {{ nResizeAmt' == 1 }};
 };
 
-_input <- crucible_fresh_var (str_concat n "->input") (llvm_array 16 u32);
-  let x = {{ {input = _input} }};
-  p_x <- alloc_init (llvm_struct "struct.ECRYPT_ctx") (crucible_struct [ crucible_term _input ]);
-  return (x, p_x);
+let bitvector_t_cleanHighBits_spec (n : Int) = do {
+  (pbv, nBits, nLength, nLength_max, List, pList, nResizeAmt) <- bitvector_t n "bv_zeroize";
+
+  crucible_precond {{ nBits == `n }};
+  crucible_precond {{ nLength == `(n /^ 64) }};
+  crucible_precond {{ nLength_max == `(n /^ 64) }};
+  crucible_precond {{ nResizeAmt == 1 }};
+
+  crucible_execute_func [pbv];
+
+  (nBits', nLength', nLength_max', List', pList', nResizeAmt') <- bitvector_t' n "bv_zeroize'" pbv;
+
+  crucible_postcond {{ nBits' == `n }};
+  crucible_postcond {{ nLength' == `(n /^ 64) }};
+  crucible_postcond {{ nLength_max' == `(n /^ 64) }};
+  crucible_postcond {{ (take `{back=n} (join List)) == (take `{back=n} (join List')) }};
+  crucible_postcond {{ nResizeAmt' == 1 }};
 };
-		
 
-let uint64_t_list nLength nLength_max pList nResizeAmt =
-  alloc_init (llvm_struct "struct.uint64_t_list"
-    (crucible_struct [nLength, nLength_max, pList, nResizeAmt]);
 
-let bitvector_t nBits bits =
-  llvm_struct "struct.bitvector_t"
-    (nBits, bits);
-*/
+
+bitvector_bc <- llvm_load_module "../obj/bitvector.bc";
+
+let nBits = 1000;
+
+bitvector_t_alloc_result <- crucible_llvm_verify bitvector_bc "bitvector_t_alloc" [] false (bitvector_t_alloc_spec nBits) z3;
+
+bitvector_t_zeroize_result <- crucible_llvm_verify bitvector_bc "bitvector_t_zeroize" [] false (bitvector_t_zeroize_spec nBits) z3;
+
+bitvector_t_cleanHighBits_result <- crucible_llvm_verify bitvector_bc "bitvector_t_cleanHighBits" [] false (bitvector_t_cleanHighBits_spec nBits) z3;
