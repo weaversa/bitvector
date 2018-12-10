@@ -107,7 +107,7 @@ let bitvector_t_cleanHighBits_spec (n : Int) = do {
   crucible_postcond {{ nBits' == `n }};
   crucible_postcond {{ nLength' == `(n /^ 64) }};
   crucible_postcond {{ nLength_max' == `(n /^ 64) }};
-  crucible_postcond {{ (take `{back=n} (join List)) == (take `{back=n} (join List')) }};
+  crucible_postcond {{ (drop (join (reverse List)) : [n]) == drop (join (reverse List')) }};
   crucible_postcond {{ nResizeAmt' == 1 }};
 };
 
@@ -129,8 +129,7 @@ let bitvector_t_fromHexString_spec (n : Int) = do {
   crucible_postcond {{ nBits == `(n*4) }};
   crucible_postcond {{ nLength == `((n*4) /^ 64) }};
   crucible_postcond {{ nLength_max == `((n*4) /^ 64) }};
-  //crucible_postcond {{ hexstring_to_bv string == take`{back=40} (join List) }};
-  crucible_postcond {{ hexstring_to_bv string == (drop (join List) : [40]) }};
+  crucible_postcond {{ hexstring_to_bv string == drop (join (reverse List)) }};
   crucible_postcond {{ nResizeAmt == 1 }};
 };
 
@@ -158,7 +157,7 @@ let bitvector_t_copy_spec (n : Int) = do {
 bitvector_bc <- llvm_load_module "../obj/bitvector.bc";
 
 let nBits = 1000;
-let nHexChars = 10;
+let nHexChars = 17;
 
 bitvector_t_alloc_result <- crucible_llvm_verify bitvector_bc "bitvector_t_alloc" [] false (bitvector_t_alloc_spec nBits) z3;
 
