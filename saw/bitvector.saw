@@ -13,6 +13,13 @@ let ptr_to_fresh n ty = do {
 let {{
   type uint64_t_list a = ([64], [64], [a][64], [64])
   type bitvector_t nBits = ([32], uint64_t_list(nBits/^64))
+
+  hexstring_to_bv : {a} (fin a) => [a][8] -> [a*4]
+  hexstring_to_bv s = join [ drop (if (c >= 'a' /\ c <= 'f') then (c - 'a') + 10
+                                    | (c >= 'A' /\ c <= 'F') then (c - 'A') + 10
+                                    | (c >= '0' /\ c <= '9') then c - '0'
+                                    else error "Malformed string") : [4]
+			   | c <- s ]
 }};
 
 let bitvector_t n name = do {
@@ -55,7 +62,7 @@ let bitvector_t' n name pbv = do {
 let bitvector_t_alloc_spec (n : Int) = do {
   crucible_execute_func [crucible_term {{ `n : [32] }}];
 
-  (pbv, nBits, nLength, nLength_max, List, pList, nResizeAmt) <- bitvector_t n "bv_alloc";
+  (pbv, nBits, nLength, nLength_max, List, pList, nResizeAmt) <- bitvector_t n "bv";
   
   crucible_return pbv;
 
@@ -67,7 +74,7 @@ let bitvector_t_alloc_spec (n : Int) = do {
 };
 
 let bitvector_t_zeroize_spec (n : Int) = do {
-  (pbv, nBits, nLength, nLength_max, List, pList, nResizeAmt) <- bitvector_t n "bv_zeroize";
+  (pbv, nBits, nLength, nLength_max, List, pList, nResizeAmt) <- bitvector_t n "bv";
 
   crucible_precond {{ nBits == `n }};
   crucible_precond {{ nLength == `(n /^ 64) }};
@@ -76,7 +83,7 @@ let bitvector_t_zeroize_spec (n : Int) = do {
 
   crucible_execute_func [pbv];
 
-  (nBits', nLength', nLength_max', List', pList', nResizeAmt') <- bitvector_t' n "bv_zeroize'" pbv;
+  (nBits', nLength', nLength_max', List', pList', nResizeAmt') <- bitvector_t' n "bv'" pbv;
 
   crucible_postcond {{ nBits' == `n }};
   crucible_postcond {{ nLength' == `(n /^ 64) }};
@@ -86,7 +93,7 @@ let bitvector_t_zeroize_spec (n : Int) = do {
 };
 
 let bitvector_t_cleanHighBits_spec (n : Int) = do {
-  (pbv, nBits, nLength, nLength_max, List, pList, nResizeAmt) <- bitvector_t n "bv_zeroize";
+  (pbv, nBits, nLength, nLength_max, List, pList, nResizeAmt) <- bitvector_t n "bv";
 
   crucible_precond {{ nBits == `n }};
   crucible_precond {{ nLength == `(n /^ 64) }};
@@ -95,13 +102,36 @@ let bitvector_t_cleanHighBits_spec (n : Int) = do {
 
   crucible_execute_func [pbv];
 
-  (nBits', nLength', nLength_max', List', pList', nResizeAmt') <- bitvector_t' n "bv_zeroize'" pbv;
+  (nBits', nLength', nLength_max', List', pList', nResizeAmt') <- bitvector_t' n "bv'" pbv;
 
   crucible_postcond {{ nBits' == `n }};
   crucible_postcond {{ nLength' == `(n /^ 64) }};
   crucible_postcond {{ nLength_max' == `(n /^ 64) }};
   crucible_postcond {{ (take `{back=n} (join List)) == (take `{back=n} (join List')) }};
   crucible_postcond {{ nResizeAmt' == 1 }};
+};
+
+let bitvector_t_fromHexString_spec (n : Int) = do {
+  (string, pstring) <- ptr_to_fresh "string" (llvm_array n (llvm_int 8));
+
+  crucible_precond {{ [ (c >= 'a' /\ c <= 'f') \/
+                        (c >= 'A' /\ c <= 'F') \/
+			(c >= '0' /\ c <= '9')
+	              | c <- string ] == ~zero }};
+
+  crucible_execute_func [pstring, crucible_term {{ `n : [64] }}];
+
+  (pbv, nBits, nLength, nLength_max, List, pList, nResizeAmt) <-
+    bitvector_t (eval_int {{ `(n*4) : [64] }}) "bv";
+  
+  crucible_return pbv;
+
+  crucible_postcond {{ nBits == `(n*4) }};
+  crucible_postcond {{ nLength == `((n*4) /^ 64) }};
+  crucible_postcond {{ nLength_max == `((n*4) /^ 64) }};
+  //crucible_postcond {{ hexstring_to_bv string == take`{back=40} (join List) }};
+  crucible_postcond {{ hexstring_to_bv string == (drop (join List) : [40]) }};
+  crucible_postcond {{ nResizeAmt == 1 }};
 };
 
 let bitvector_t_copy_spec (n : Int) = do {
@@ -128,6 +158,7 @@ let bitvector_t_copy_spec (n : Int) = do {
 bitvector_bc <- llvm_load_module "../obj/bitvector.bc";
 
 let nBits = 1000;
+let nHexChars = 10;
 
 bitvector_t_alloc_result <- crucible_llvm_verify bitvector_bc "bitvector_t_alloc" [] false (bitvector_t_alloc_spec nBits) z3;
 
@@ -135,4 +166,7 @@ bitvector_t_zeroize_result <- crucible_llvm_verify bitvector_bc "bitvector_t_zer
 
 bitvector_t_cleanHighBits_result <- crucible_llvm_verify bitvector_bc "bitvector_t_cleanHighBits" [] false (bitvector_t_cleanHighBits_spec nBits) z3;
 
-bitvector_t_copy_result <- crucible_llvm_verify bitvector_bc "bitvector_t_copy" [] false (bitvector_t_copy_spec nBits) z3;
+bitvector_t_fromHexString_result <- crucible_llvm_verify bitvector_bc "bitvector_t_fromHexString" [] true (bitvector_t_fromHexString_spec nHexChars) z3;
+
+bitvector_t_copy_result <- fails (crucible_llvm_verify bitvector_bc "bitvector_t_copy" [] false (bitvector_t_copy_spec nBits) z3);
+

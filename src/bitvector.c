@@ -29,19 +29,23 @@ void bitvector_t_cleanHighBits(bitvector_t *bv) {
   bv->bits.pList[bv->bits.nLength-1] &= (~(uint64_t)0) >> (64 - (bv->nBits&0x3f));
 }
 
+uint64_t hexchar_to_digit(char c) {
+  if(c >= 'a' && c <= 'f')      return (c - 'a') + 10;
+  else if(c >= 'A' && c <= 'F') return (c - 'A') + 10;
+  else if(c >= '0' && c <= '9') return c - '0';
+  else return 16;
+}
+
 bitvector_t *bitvector_t_fromHexString(char *string, size_t length) {
   size_t i;
-  char sc[2] = {0, 0};
 
   bitvector_t *bv = bitvector_t_alloc(length*4);
   if(bv == NULL) return NULL;
 
   for(i = 0; i < length; i++) {
-    if(isxdigit(string[length-i - 1])) {
-      sc[0] = string[length-i - 1];
-      uint64_t digit = strtoul(sc, NULL, 16);
-      bv->bits.pList[i>>4] |= digit << ((i&0xf)*4);
-    } else break;
+    uint64_t digit = hexchar_to_digit(string[(length - i) - 1]);
+    if(digit == 16) break;
+    bv->bits.pList[i>>4] |= digit << ((i&0xf)*4);
   }
 
   if(i != length) {
