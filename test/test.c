@@ -20,28 +20,28 @@ int main() {
 
   fprintf(stderr, "z2 : [%d] = z # z = %s\n", z2->nBits, tmp=bitvector_t_toHexString(z2)); free(tmp);
 
-  bitvector_t *t = bitvector_t_take(z2, 121);
+  bitvector_t *t = bitvector_t_drop(z2, 121);
 
-  fprintf(stderr, "t : [%d] = take`{back=121} z2 = %s\n", t->nBits, tmp=bitvector_t_toHexString(t)); free(tmp);
+  fprintf(stderr, "t : [%d] = drop`{back=121} z2 = %s\n", t->nBits, tmp=bitvector_t_toHexString(t)); free(tmp);
 
-  bitvector_t_takeUpdate(z2, 121);
+  bitvector_t_dropUpdate(z2, 121);
 
-  fprintf(stderr, "z2 : [%d] = take`{back=121} z2 = %s\n", z2->nBits, tmp=bitvector_t_toHexString(z2)); free(tmp);
+  fprintf(stderr, "z2 : [%d] = drop`{back=121} z2 = %s\n", z2->nBits, tmp=bitvector_t_toHexString(z2)); free(tmp);
 
   bitvector_t *xor = bitvector_t_xor(t, t);
 
   fprintf(stderr, "xor : [%d] = t ^ t = %s\n", xor->nBits, tmp=bitvector_t_toHexString(xor)); free(tmp);
 
-  bitvector_t_setBit(xor, 0);
+  bitvector_t_setBit(xor, 0, 1);
   
   fprintf(stderr, "xor : [%d] = t ^ t = %s\n", xor->nBits, tmp=bitvector_t_toHexString(xor)); free(tmp);
 
-  bitvector_t_setBit(xor, 63);
+  bitvector_t_setBit(xor, 63, 1);
   
   fprintf(stderr, "xor : [%d] = t ^ t = %s\n", xor->nBits, tmp=bitvector_t_toHexString(xor)); free(tmp);
 
-  bitvector_t_setBit(xor, 120);
-  bitvector_t_unsetBit(xor, 63);
+  bitvector_t_setBit(xor, 120, 1);
+  bitvector_t_setBit(xor, 63, 0);
   
   fprintf(stderr, "xor : [%d] = t ^ t = %s\n", xor->nBits, tmp=bitvector_t_toHexString(xor)); free(tmp);
   

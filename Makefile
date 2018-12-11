@@ -1,4 +1,4 @@
-EXTRAS = Makefile LICENSE README.md saw/bitvector.saw
+EXTRAS = Makefile LICENSE README.md saw/bitvector.saw test/test.c
 
 HEADERS = include/bitvector.h
 
@@ -10,8 +10,9 @@ BCOBJECTS = $(SOURCES:src/%.c=obj/%.bc)
 
 BITVECTORLIB = bitvector
 CC = gcc
-DBG = -g -Wall -fstack-protector-all -pedantic
-OPT = #-march=native -O3 -DNDEBUG -ffast-math -fomit-frame-pointer
+DBG = #-g -Wall -fstack-protector-all -pedantic
+OPT = -march=native -O3 -DNDEBUG -ffast-math -fomit-frame-pointer
+VERIFY = -O1
 INCLUDES = -Iinclude
 LIBS = -l$(BITVECTORLIB)
 LDFLAGS = -Llib
@@ -54,11 +55,13 @@ $(BCOBJECTS): obj/%.bc : src/%.c Makefile
 test/test: test/test.c lib/lib$(BITVECTORLIB).a
 	$(CC) $(CFLAGS) $(LDFLAGS) test/test.c -o test/test $(LIBS)
 
-saw: saw/bitvector.saw $(BCOBJECTS)
+saw: saw/bitvector.saw $(BCOBJECTS) FORCE
 	saw $<
 
-clean:
+clean: FORCE
 	rm -rf *~ */*~ $(OBJECTS) $(BCOBJECTS) ./.depend test/test *.dSYM test/test.dSYM
 
-edit:
+edit: FORCE
 	emacs -nw $(EXTRAS) $(HEADERS) $(SOURCES)
+
+FORCE:

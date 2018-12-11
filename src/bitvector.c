@@ -87,17 +87,18 @@ bitvector_t *bitvector_t_copy(bitvector_t *bv) {
   return ret;
 }
 
-void bitvector_t_widen(bitvector_t *bv, uint32_t nBits) {
-  if(nBits < bv->nBits) {
-    fprintf(stderr, "Cannot widen a bitvector_t of %d bits to %d bits.\n", bv->nBits, nBits);
+void bitvector_t_widen(bitvector_t *bv, uint32_t nBitsToAdd) {
+  if(nBitsToAdd + bv->nBits < bv->nBits) {
+    fprintf(stderr, "Widening a vector with %u bits by %u bits caused an overflow\n", bv->nBits, nBitsToAdd);
     return;
   }
+  
+  bitvector_t_cleanHighBits(bv);
 
-  bv->nBits = nBits;
+  bv->nBits += nBitsToAdd;
   size_t old_length = bv->bits.nLength;
-  uint8_t ret = uint64_t_list_resize(&bv->bits, BITS_TO_WORDS(nBits));
+  uint8_t ret = uint64_t_list_resize(&bv->bits, BITS_TO_WORDS(bv->nBits));
   if(ret != NO_ERROR) return;
-
   bv->bits.nLength = BITS_TO_WORDS(bv->nBits);
 
   memset((void *)(bv->bits.pList+old_length), 0, (bv->bits.nLength - old_length) * sizeof(uint64_t));
@@ -108,9 +109,9 @@ bitvector_t *bitvector_t_concat(bitvector_t *x, bitvector_t *y) {
   size_t length = x->bits.nLength;
   size_t i;
 
-  bitvector_t_cleanHighBits(y);
   bitvector_t *ret = bitvector_t_copy(y);
-  bitvector_t_widen(ret, x->nBits + y->nBits);
+  bitvector_t_cleanHighBits(ret);
+  bitvector_t_widen(ret, x->nBits);
 
   for(i = start; i < start + length; i++) {
     ret->bits.pList[i] |= x->bits.pList[i-start] << (y->nBits&0x3f);
@@ -135,24 +136,24 @@ bitvector_t *bitvector_t_negate(bitvector_t *bv) {
   return ret;
 }
 
-void bitvector_t_takeUpdate(bitvector_t *bv, uint32_t nBits) {
-  if(nBits > bv->nBits) {
-    fprintf(stderr, "Cannot take %u bits from a bitvector_t with only %u bits.\n", nBits, bv->nBits);
+void bitvector_t_dropUpdate(bitvector_t *bv, uint32_t nBitsToDrop) {
+  if(nBitsToDrop > bv->nBits) {
+    fprintf(stderr, "Cannot drop %u bits from a bitvector_t with only %u bits.\n", nBitsToDrop, bv->nBits);
     return;
   }
-  bv->nBits = nBits;
-  bv->bits.nLength = BITS_TO_WORDS(nBits);
+  bv->nBits -= nBitsToDrop;
+  bv->bits.nLength = BITS_TO_WORDS(bv->nBits);
 }
 
-bitvector_t *bitvector_t_take(bitvector_t *bv, uint32_t nBits) {
-  if(nBits > bv->nBits) {
-    fprintf(stderr, "Cannot take %u bits from a bitvector_t with only %u bits.\n", nBits, bv->nBits);
+bitvector_t *bitvector_t_drop(bitvector_t *bv, uint32_t nBitsToDrop) {
+  if(nBitsToDrop > bv->nBits) {
+    fprintf(stderr, "Cannot drop %u bits from a bitvector_t with only %u bits.\n", nBitsToDrop, bv->nBits);
     return NULL;
   }
   size_t nLength_old = bv->bits.nLength;
   uint32_t nBits_old = bv->nBits;
-  bv->bits.nLength = BITS_TO_WORDS(nBits);
-  bv->nBits = nBits;
+  bv->nBits -= nBitsToDrop;
+  bv->bits.nLength = BITS_TO_WORDS(bv->nBits);
 
   bitvector_t *ret = bitvector_t_copy(bv);
 
@@ -172,24 +173,18 @@ uint8_t bitvector_t_getBit(bitvector_t *bv, uint32_t index) {
   return (uint8_t) ((uint64_t) 1) & (bv->bits.pList[index >> 6] >> (index & 0x3f));
 }
 
-void bitvector_t_setBit(bitvector_t *bv, uint32_t index) {
+void bitvector_t_setBit(bitvector_t *bv, uint32_t index, uint8_t value) {
   if(bv == NULL) return;
   if(index >= bv->nBits) {
     fprintf(stderr, "Cannot set bit %u in a bitvector_t with only %u bits.\n", index, bv->nBits);
     return;
   }
 
-  bv->bits.pList[index >> 6] |= ((uint64_t) 1) << (index & 0x3f);
-}
-
-void bitvector_t_unsetBit(bitvector_t *bv, uint32_t index) {
-  if(bv == NULL) return;
-  if(index >= bv->nBits) {
-    fprintf(stderr, "Cannot unset bit %u in a bitvector_t with only %u bits.\n", index, bv->nBits);
-    return;
+  if(value) {
+    bv->bits.pList[index >> 6] |= ((uint64_t) 1) << (index & 0x3f);
+  } else {
+    bv->bits.pList[index >> 6] &= ~(((uint64_t) 1) << (index & 0x3f));
   }
-
-  bv->bits.pList[index >> 6] &= ~(((uint64_t) 1) << (index & 0x3f));
 }
 
 uint32_t bitvector_t_popcount(bitvector_t *bv) {
@@ -213,9 +208,9 @@ void bitvector_t_sliceUpdate(bitvector_t *slice, bitvector_t *x, uint32_t b0, ui
   }
 
   if(slice->nBits < (b1-b0)) {
-    bitvector_t_widen(slice, b1-b0);
+    bitvector_t_widen(slice, (b1-b0) - slice->nBits);
   } else if(slice->nBits > (b1-b0)) {
-    bitvector_t_takeUpdate(slice, b1-b0);
+    bitvector_t_dropUpdate(slice, slice->nBits - (b1-b0));
   }
 
   if(x->nBits < (b1-b0)) {

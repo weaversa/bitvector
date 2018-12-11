@@ -32,12 +32,11 @@ void bitvector_t_zeroize(bitvector_t *bv);
 bitvector_t *bitvector_t_fromHexString(char *string, size_t length);
 char *bitvector_t_toHexString(bitvector_t *bv);
 bitvector_t *bitvector_t_copy(bitvector_t *bv);
-void bitvector_t_widen(bitvector_t *bv, uint32_t nBits);
+void bitvector_t_widen(bitvector_t *bv, uint32_t nBitsToAdd);
 void bitvector_t_negateUpdate(bitvector_t *bv);
 bitvector_t *bitvector_t_negate(bitvector_t *bv);
 uint8_t bitvector_t_getBit(bitvector_t *bv, uint32_t index);
-void bitvector_t_setBit(bitvector_t *bv, uint32_t index);
-void bitvector_t_unsetBit(bitvector_t *bv, uint32_t index);
+void bitvector_t_setBit(bitvector_t *bv, uint32_t index, uint8_t value);
 uint32_t bitvector_t_popcount(bitvector_t *bv);
   
 //Binary Boolean operators
@@ -51,8 +50,8 @@ bitvector_t_zipWithIncludes(or)
 bitvector_t_zipWithIncludes(and)
 
 bitvector_t *bitvector_t_concat(bitvector_t *x, bitvector_t *y);
-void bitvector_t_takeUpdate(bitvector_t *bv, uint32_t nBits);
-bitvector_t *bitvector_t_take(bitvector_t *bv, uint32_t nBits);
+void bitvector_t_dropUpdate(bitvector_t *bv, uint32_t nBitsToDrop);
+bitvector_t *bitvector_t_drop(bitvector_t *bv, uint32_t nBitsToDrop);
 uint8_t bitvector_t_equal(bitvector_t *x, bitvector_t *y);
 void bitvector_t_sliceUpdate(bitvector_t *slice, bitvector_t *x, uint32_t b0, uint32_t b1);
 bitvector_t *bitvector_t_slice(bitvector_t *bv, uint32_t b0, uint32_t b1);
