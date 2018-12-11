@@ -200,8 +200,8 @@ uint32_t bitvector_t_popcount(bitvector_t *bv) {
   return ret;
 }
 
-void bitvector_t_sliceUpdate(bitvector_t *slice, bitvector_t *x, uint32_t b0, uint32_t b1) {
-  if(slice == NULL || x == NULL) return;
+void bitvector_t_sliceUpdate(bitvector_t *slice, bitvector_t *bv, uint32_t b0, uint32_t b1) {
+  if(slice == NULL || bv == NULL) return;
   if(b0 > b1) {
     fprintf(stderr, "End of slice is before the beginning.\n");
     return;
@@ -213,8 +213,8 @@ void bitvector_t_sliceUpdate(bitvector_t *slice, bitvector_t *x, uint32_t b0, ui
     bitvector_t_dropUpdate(slice, slice->nBits - (b1-b0));
   }
 
-  if(x->nBits < (b1-b0)) {
-    fprintf(stderr, "Cannot take a slice of size %u from a bitvector_t with only %u bits.\n", b1-b0, x->nBits);
+  if(bv->nBits < (b1-b0)) {
+    fprintf(stderr, "Cannot take a slice of size %u from a bitvector_t with only %u bits.\n", b1-b0, bv->nBits);
     return;
   }
   
@@ -222,9 +222,9 @@ void bitvector_t_sliceUpdate(bitvector_t *slice, bitvector_t *x, uint32_t b0, ui
   size_t length = ((b1-b0) >> 6) + 1;
   size_t i;
   for(i = 0; i < length; i++) {
-    slice->bits.pList[i] = x->bits.pList[start + i] >> (b0&0x3f);
-    if((start + i + 1 < x->bits.nLength) && ((b0&0x3f) != 0)) {
-      slice->bits.pList[i] |= x->bits.pList[start + i + 1] << (64 - (b0&0x3f));
+    slice->bits.pList[i] = bv->bits.pList[start + i] >> (b0&0x3f);
+    if((start + i + 1 < bv->bits.nLength) && ((b0&0x3f) != 0)) {
+      slice->bits.pList[i] |= bv->bits.pList[start + i + 1] << (64 - (b0&0x3f));
     }
   }
 }

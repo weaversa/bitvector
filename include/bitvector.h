@@ -53,7 +53,7 @@ bitvector_t *bitvector_t_concat(bitvector_t *x, bitvector_t *y);
 void bitvector_t_dropUpdate(bitvector_t *bv, uint32_t nBitsToDrop);
 bitvector_t *bitvector_t_drop(bitvector_t *bv, uint32_t nBitsToDrop);
 uint8_t bitvector_t_equal(bitvector_t *x, bitvector_t *y);
-void bitvector_t_sliceUpdate(bitvector_t *slice, bitvector_t *x, uint32_t b0, uint32_t b1);
+void bitvector_t_sliceUpdate(bitvector_t *slice, bitvector_t *bv, uint32_t b0, uint32_t b1);
 bitvector_t *bitvector_t_slice(bitvector_t *bv, uint32_t b0, uint32_t b1);
 
 #endif
