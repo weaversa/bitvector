@@ -263,9 +263,6 @@ bitvector_t *bitvector_t_##NAME(bitvector_t *x, bitvector_t *y) {     \
 bitvector_t_zipWithUpdate(xor, ^)
 bitvector_t_zipWith(xor, ^)
 
-bitvector_t_zipWithUpdate(equ, ==)
-bitvector_t_zipWith(equ, ==)
-
 bitvector_t_zipWithUpdate(or, |)
 bitvector_t_zipWith(or, |)
 

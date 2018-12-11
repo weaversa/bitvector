@@ -45,7 +45,6 @@ void bitvector_t_##NAME##Update(bitvector_t *x, bitvector_t *y); \
 bitvector_t *bitvector_t_##NAME(bitvector_t *x, bitvector_t *y); \
 
 bitvector_t_zipWithIncludes(xor)
-bitvector_t_zipWithIncludes(equ)
 bitvector_t_zipWithIncludes(or)
 bitvector_t_zipWithIncludes(and)
 
