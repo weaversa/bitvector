@@ -17,6 +17,10 @@ bitvector_t *bitvector_t_alloc(uint32_t nBits) {
 }
 
 void bitvector_t_free(bitvector_t *bv) {
+  if(bv == NULL) {
+    fprintf(stderr, "Cannot free NULL bitvector_t\n");
+    return;
+  }
   uint64_t_list_free(&bv->bits, NULL);
   free(bv);
 }
