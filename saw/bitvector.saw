@@ -377,52 +377,6 @@ let bitvector_t_xor_spec (n : Int) = do {
   crucible_postcond {{ r_List == x_List ^ y_List }};
 };
 
-let bitvector_t_andUpdate_spec (n : Int) = do {
-  (px, x_nBits, x_nLength, x_nLength_max, x_List, x_pList, x_nResizeAmt) <- bitvector_t n "x";
-  bitvector_t_preconditions n x_nBits x_nLength x_nLength_max x_nResizeAmt;
-
-  (py, y_nBits, y_nLength, y_nLength_max, y_List, y_pList, y_nResizeAmt) <- bitvector_t n "y";
-  bitvector_t_preconditions n y_nBits y_nLength y_nLength_max y_nResizeAmt;
-
-  crucible_execute_func [px, py];
-
-  (x_nBits', x_nLength', x_nLength_max', x_List', x_pList', x_nResizeAmt') <- bitvector_t' n "x'" px;
-  bitvector_t_postconditions n x_nBits' x_nLength' x_nLength_max' x_nResizeAmt';
-
-  (y_nBits', y_nLength', y_nLength_max', y_List', y_pList', y_nResizeAmt') <- bitvector_t' n "y'" py;
-  bitvector_t_postconditions n y_nBits' y_nLength' y_nLength_max' y_nResizeAmt';
-
-  crucible_postcond {{ y_List' == y_List }};
-  crucible_postcond {{ x_List' == x_List && y_List }};
-};
-
-let bitvector_t_and_spec (n : Int) = do {
-  (px, x_nBits, x_nLength, x_nLength_max, x_List, x_pList, x_nResizeAmt) <- bitvector_t n "x";
-  bitvector_t_preconditions n x_nBits x_nLength x_nLength_max x_nResizeAmt;
-
-  (py, y_nBits, y_nLength, y_nLength_max, y_List, y_pList, y_nResizeAmt) <- bitvector_t n "y";
-  bitvector_t_preconditions n y_nBits y_nLength y_nLength_max y_nResizeAmt;
-
-  crucible_execute_func [px, py];
-
-  (x_nBits', x_nLength', x_nLength_max', x_List', x_pList', x_nResizeAmt') <- bitvector_t' n "x'" px;
-  bitvector_t_postconditions n x_nBits' x_nLength' x_nLength_max' x_nResizeAmt';
-
-  crucible_postcond {{ x_List' == x_List }};
-  
-  (y_nBits', y_nLength', y_nLength_max', y_List', y_pList', y_nResizeAmt') <- bitvector_t' n "y'" py;
-  bitvector_t_postconditions n y_nBits' y_nLength' y_nLength_max' y_nResizeAmt';
-
-  crucible_postcond {{ y_List' == y_List }};
-
-  (presult, r_nBits, r_nLength, r_nLength_max, r_List, r_pList, r_nResizeAmt) <- bitvector_t n "r";
-  bitvector_t_postconditions n r_nBits r_nLength r_nLength_max r_nResizeAmt;
-
-  crucible_return presult;
-
-  crucible_postcond {{ r_List == x_List && y_List }};
-};
-
 let bitvector_t_orUpdate_spec (n : Int) = do {
   (px, x_nBits, x_nLength, x_nLength_max, x_List, x_pList, x_nResizeAmt) <- bitvector_t n "x";
   bitvector_t_preconditions n x_nBits x_nLength x_nLength_max x_nResizeAmt;
@@ -469,6 +423,74 @@ let bitvector_t_or_spec (n : Int) = do {
   crucible_postcond {{ r_List == x_List || y_List }};
 };
 
+let bitvector_t_andUpdate_spec (n : Int) = do {
+  (px, x_nBits, x_nLength, x_nLength_max, x_List, x_pList, x_nResizeAmt) <- bitvector_t n "x";
+  bitvector_t_preconditions n x_nBits x_nLength x_nLength_max x_nResizeAmt;
+
+  (py, y_nBits, y_nLength, y_nLength_max, y_List, y_pList, y_nResizeAmt) <- bitvector_t n "y";
+  bitvector_t_preconditions n y_nBits y_nLength y_nLength_max y_nResizeAmt;
+
+  crucible_execute_func [px, py];
+
+  (x_nBits', x_nLength', x_nLength_max', x_List', x_pList', x_nResizeAmt') <- bitvector_t' n "x'" px;
+  bitvector_t_postconditions n x_nBits' x_nLength' x_nLength_max' x_nResizeAmt';
+
+  (y_nBits', y_nLength', y_nLength_max', y_List', y_pList', y_nResizeAmt') <- bitvector_t' n "y'" py;
+  bitvector_t_postconditions n y_nBits' y_nLength' y_nLength_max' y_nResizeAmt';
+
+  crucible_postcond {{ y_List' == y_List }};
+  crucible_postcond {{ x_List' == x_List && y_List }};
+};
+
+let bitvector_t_and_spec (n : Int) = do {
+  (px, x_nBits, x_nLength, x_nLength_max, x_List, x_pList, x_nResizeAmt) <- bitvector_t n "x";
+  bitvector_t_preconditions n x_nBits x_nLength x_nLength_max x_nResizeAmt;
+
+  (py, y_nBits, y_nLength, y_nLength_max, y_List, y_pList, y_nResizeAmt) <- bitvector_t n "y";
+  bitvector_t_preconditions n y_nBits y_nLength y_nLength_max y_nResizeAmt;
+
+  crucible_execute_func [px, py];
+
+  (x_nBits', x_nLength', x_nLength_max', x_List', x_pList', x_nResizeAmt') <- bitvector_t' n "x'" px;
+  bitvector_t_postconditions n x_nBits' x_nLength' x_nLength_max' x_nResizeAmt';
+
+  crucible_postcond {{ x_List' == x_List }};
+  
+  (y_nBits', y_nLength', y_nLength_max', y_List', y_pList', y_nResizeAmt') <- bitvector_t' n "y'" py;
+  bitvector_t_postconditions n y_nBits' y_nLength' y_nLength_max' y_nResizeAmt';
+
+  crucible_postcond {{ y_List' == y_List }};
+
+  (presult, r_nBits, r_nLength, r_nLength_max, r_List, r_pList, r_nResizeAmt) <- bitvector_t n "r";
+  bitvector_t_postconditions n r_nBits r_nLength r_nLength_max r_nResizeAmt;
+
+  crucible_return presult;
+
+  crucible_postcond {{ r_List == x_List && y_List }};
+};
+
+let bitvector_t_equal_spec (n : Int) = do {
+  (px, x_nBits, x_nLength, x_nLength_max, x_List, x_pList, x_nResizeAmt) <- bitvector_t n "x";
+  bitvector_t_preconditions n x_nBits x_nLength x_nLength_max x_nResizeAmt;
+
+  (py, y_nBits, y_nLength, y_nLength_max, y_List, y_pList, y_nResizeAmt) <- bitvector_t n "y";
+  bitvector_t_preconditions n y_nBits y_nLength y_nLength_max y_nResizeAmt;
+
+  crucible_execute_func [px, py];
+
+  (x_nBits', x_nLength', x_nLength_max', x_List', x_pList', x_nResizeAmt') <- bitvector_t' n "x'" px;
+  bitvector_t_postconditions n x_nBits' x_nLength' x_nLength_max' x_nResizeAmt';
+
+  crucible_postcond {{ (fromList`{b=n} x_List) == (fromList`{b=n} x_List') }};
+  
+  (y_nBits', y_nLength', y_nLength_max', y_List', y_pList', y_nResizeAmt') <- bitvector_t' n "y'" py;
+  bitvector_t_postconditions n y_nBits' y_nLength' y_nLength_max' y_nResizeAmt';
+
+  crucible_postcond {{ (fromList`{b=n} y_List) == (fromList`{b=n} y_List') }};
+
+  crucible_return (crucible_term {{ 0 # [(fromList`{b=n} x_List) == (fromList`{b=n} y_List)] : [8] }});
+};
+
 
 bitvector_bc <- llvm_load_module "../obj/bitvector.bc";
 
@@ -480,37 +502,37 @@ let nHexChars = 17;
 let sliceb0 = 100;
 let sliceb1 = 741;
 
-//bitvector_t_alloc_result <- crucible_llvm_verify bitvector_bc "bitvector_t_alloc" [] false (bitvector_t_alloc_spec nBits) z3;
+bitvector_t_alloc_result <- crucible_llvm_verify bitvector_bc "bitvector_t_alloc" [] false (bitvector_t_alloc_spec nBits) z3;
 
-//bitvector_t_zeroize_result <- crucible_llvm_verify bitvector_bc "bitvector_t_zeroize" [] false (bitvector_t_zeroize_spec nBits) z3;
+bitvector_t_zeroize_result <- crucible_llvm_verify bitvector_bc "bitvector_t_zeroize" [] false (bitvector_t_zeroize_spec nBits) z3;
 
-//bitvector_t_cleanHighBits_result <- crucible_llvm_verify bitvector_bc "bitvector_t_cleanHighBits" [] false (bitvector_t_cleanHighBits_spec nBits) z3;
+bitvector_t_cleanHighBits_result <- crucible_llvm_verify bitvector_bc "bitvector_t_cleanHighBits" [] false (bitvector_t_cleanHighBits_spec nBits) z3;
 
-//bitvector_t_fromHexString_result <- crucible_llvm_verify bitvector_bc "bitvector_t_fromHexString" [] true (bitvector_t_fromHexString_spec nHexChars) z3;
+bitvector_t_fromHexString_result <- crucible_llvm_verify bitvector_bc "bitvector_t_fromHexString" [] true (bitvector_t_fromHexString_spec nHexChars) z3;
 
-//bitvector_t_copy_result <- crucible_llvm_verify bitvector_bc "bitvector_t_copy" [] true (bitvector_t_copy_spec nBits) z3;
+bitvector_t_copy_result <- crucible_llvm_verify bitvector_bc "bitvector_t_copy" [] true (bitvector_t_copy_spec nBits) z3;
 
-//bitvector_t_widen_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_widen" [] true (bitvector_t_widen_spec nBits nBitsToAdd) z3);
+bitvector_t_widen_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_widen" [] true (bitvector_t_widen_spec nBits nBitsToAdd) z3);
 
-//bitvector_t_concat_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_concat" [bitvector_t_widen_result] true (bitvector_t_concat_spec nBits2 nBits) z3);
+bitvector_t_concat_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_concat" [bitvector_t_widen_result] true (bitvector_t_concat_spec nBits2 nBits) z3);
 
-//bitvector_t_negateUpdate_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_negateUpdate" [] true (bitvector_t_negateUpdate_spec nBits) z3);
+bitvector_t_negateUpdate_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_negateUpdate" [] true (bitvector_t_negateUpdate_spec nBits) z3);
 
-//bitvector_t_negate_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_negate" [bitvector_t_negateUpdate_result] true (bitvector_t_negate_spec nBits) z3);
+bitvector_t_negate_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_negate" [bitvector_t_negateUpdate_result] true (bitvector_t_negate_spec nBits) z3);
 
-//bitvector_t_dropUpdate_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_dropUpdate" [] true (bitvector_t_dropUpdate_spec nBits nBitsToDrop) z3);
+bitvector_t_dropUpdate_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_dropUpdate" [] true (bitvector_t_dropUpdate_spec nBits nBitsToDrop) z3);
 
-//bitvector_t_drop_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_drop" [] true (bitvector_t_drop_spec nBits nBitsToDrop) z3);
+bitvector_t_drop_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_drop" [] true (bitvector_t_drop_spec nBits nBitsToDrop) z3);
 
-//bitvector_t_getBit_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_getBit" [] true (bitvector_t_getBit_spec nBits) z3);
+bitvector_t_getBit_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_getBit" [] true (bitvector_t_getBit_spec nBits) z3);
 
-//bitvector_t_setBit_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_setBit" [] true (bitvector_t_setBit_spec nBits) z3);
+bitvector_t_setBit_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_setBit" [] true (bitvector_t_setBit_spec nBits) z3);
 
-//bitvector_t_popcount_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_popcount" [] true (bitvector_t_popcount_spec nBits) z3);
+bitvector_t_popcount_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_popcount" [] true (bitvector_t_popcount_spec nBits) z3);
 
-//bitvector_t_sliceUpdate_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_sliceUpdate" [] true (bitvector_t_sliceUpdate_spec nBits sliceb0 sliceb1) z3);
+bitvector_t_sliceUpdate_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_sliceUpdate" [] true (bitvector_t_sliceUpdate_spec nBits sliceb0 sliceb1) z3);
 
-//bitvector_t_slice_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_slice" [bitvector_t_sliceUpdate_result] true (bitvector_t_slice_spec nBits sliceb0 sliceb1) z3);
+bitvector_t_slice_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_slice" [bitvector_t_sliceUpdate_result] true (bitvector_t_slice_spec nBits sliceb0 sliceb1) z3);
 
 bitvector_t_xorUpdate_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_xorUpdate" [] true (bitvector_t_xorUpdate_spec nBits) z3);
 
@@ -523,6 +545,8 @@ bitvector_t_or_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_or" [bi
 bitvector_t_andUpdate_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_andUpdate" [] true (bitvector_t_andUpdate_spec nBits) z3);
 
 bitvector_t_and_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_and" [bitvector_t_andUpdate_result] true (bitvector_t_and_spec nBits) z3);
+
+bitvector_t_equal_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_equal" [] true (bitvector_t_equal_spec nBits) z3);
 
 
 
