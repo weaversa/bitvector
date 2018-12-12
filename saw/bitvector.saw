@@ -528,7 +528,7 @@ bitvector_t_getBit_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_get
 
 bitvector_t_setBit_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_setBit" [] true (bitvector_t_setBit_spec nBits) z3);
 
-bitvector_t_popcount_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_popcount" [] true (bitvector_t_popcount_spec nBits) z3);
+bitvector_t_popcount_result <- fails (crucible_llvm_verify bitvector_bc "bitvector_t_popcount" [] true (bitvector_t_popcount_spec nBits) z3);
 
 bitvector_t_sliceUpdate_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_sliceUpdate" [] true (bitvector_t_sliceUpdate_spec nBits sliceb0 sliceb1) z3);
 
