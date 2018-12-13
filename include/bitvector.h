@@ -15,7 +15,7 @@
 #include <inttypes.h>
 #include <ctype.h>
 
-#include "c_list_types/include/c_list_types.h"
+#include "c_list_types.h"
 
 create_c_list_headers(uint64_t_list, uint64_t)
 
