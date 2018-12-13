@@ -81,6 +81,56 @@ char *bitvector_t_toHexString(bitvector_t *bv) {
   return string;
 }
 
+void bitvector_from_bytesUpdate(bitvector_t *bv, uint8_t *bytes, size_t nBytes) {
+  if(bv == NULL) return;
+  if(bytes == NULL) return;
+  
+  if(bv->nBits < nBytes*8) {
+    bitvector_t_widen(bv, (nBytes*8) - bv->nBits);
+  } else if(bv->nBits > nBytes*8) {
+    bitvector_t_dropUpdate(bv, bv->nBits - (nBytes*8));
+  }
+
+  size_t i;
+  for(i = 0; i < nBytes; i++) {
+    bv->bits.pList[i>>3] |= ((uint64_t) bytes[i])<<((i&0x7) * 8);
+  }
+}
+
+bitvector_t *bitvector_from_bytes(uint8_t *bytes, size_t nBytes) {
+  if(bytes == NULL) return NULL;
+  bitvector_t *bv = bitvector_t_alloc(nBytes*8);
+  bitvector_from_bytesUpdate(bv, bytes, nBytes);
+  return bv;
+}
+
+void bitvector_to_bytesUpdate(uint8_t *bytes, bitvector_t *bv) {
+  if(bv == NULL) return;
+  if(bytes == NULL) return;
+  if(bv->nBits % 8 != 0) {
+    fprintf(stderr, "Cannot create a byte array from a bitvector_t with number of bits not a multiple of 8.\n");
+    return;
+  }
+
+  size_t nBytes = bv->nBits / 8;
+  size_t i;
+  for(i = 0; i < nBytes; i++) {
+    bytes[i] = (uint8_t) (bv->bits.pList[i>>3]>>((i&0x7) * 8));
+  }
+}
+
+uint8_t *bitvector_to_bytes(bitvector_t *bv) {
+  if(bv == NULL) return NULL;
+  if(bv->nBits % 8 != 0) {
+    fprintf(stderr, "Cannot create a byte array from a bitvector_t with number of bits not a multiple of 8.\n");
+    return NULL;
+  }
+  
+  uint8_t *bytes = (uint8_t *)malloc((bv->nBits / 8) * sizeof(uint8_t));
+  bitvector_to_bytesUpdate(bytes, bv);
+  return bytes;
+}
+
 bitvector_t *bitvector_t_copy(bitvector_t *bv) {
   bitvector_t *ret = bitvector_t_alloc(bv->nBits);
   if(uint64_t_list_copy(&ret->bits, &bv->bits) != NO_ERROR) {
