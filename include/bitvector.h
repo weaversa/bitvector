@@ -35,6 +35,7 @@ void bitvector_from_bytesUpdate(bitvector_t *bv, uint8_t *bytes, size_t nBytes);
 bitvector_t *bitvector_from_bytes(uint8_t *bytes, size_t nBytes);
 void bitvector_to_bytesUpdate(uint8_t *bytes, bitvector_t *bv);
 uint8_t *bitvector_to_bytes(bitvector_t *bv);
+void bitvector_t_copyUpdate(bitvector_t *dst, bitvector_t *src);
 bitvector_t *bitvector_t_copy(bitvector_t *bv);
 void bitvector_t_widen(bitvector_t *bv, uint32_t nBitsToAdd);
 void bitvector_t_negateUpdate(bitvector_t *bv);

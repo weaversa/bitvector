@@ -72,7 +72,7 @@ int main() {
   
   bitvector_t *slice2_clone = (bitvector_t *)bitvector_to_bytes(bucket);
   fprintf(stderr, "z!![81..43] = %s\n", tmp=bitvector_t_toHexString(slice2_clone)); free(tmp);
-  
+
   bitvector_t_free(x);
   bitvector_t_free(y);
   bitvector_t_free(z);

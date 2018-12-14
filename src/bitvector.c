@@ -131,13 +131,16 @@ uint8_t *bitvector_to_bytes(bitvector_t *bv) {
   return bytes;
 }
 
+void bitvector_t_copyUpdate(bitvector_t *dst, bitvector_t *src) {
+  if(uint64_t_list_copy(&dst->bits, &src->bits) != NO_ERROR) {
+    fprintf(stderr, "bitvector_t copy failed.\n");
+    return;
+  }
+}
+
 bitvector_t *bitvector_t_copy(bitvector_t *bv) {
   bitvector_t *ret = bitvector_t_alloc(bv->nBits);
-  if(uint64_t_list_copy(&ret->bits, &bv->bits) != NO_ERROR) {
-    fprintf(stderr, "bitvector_t copy failed.\n");
-    bitvector_t_free(ret);
-    return NULL;
-  }
+  bitvector_t_copyUpdate(ret, bv);
   return ret;
 }
 
