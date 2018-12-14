@@ -138,6 +138,24 @@ let bitvector_t_fromHexString_spec (n : Int) = do {
   crucible_postcond {{ hexstring_to_bv string == fromList List' }};
 };
 
+let bitvector_t_copyUpdate_spec (n : Int) = do {
+  (pdst, d_nBits, d_nLength, d_nLength_max, d_List, d_pList, d_nResizeAmt) <- bitvector_t n "dst";
+  bitvector_t_preconditions n d_nBits d_nLength d_nLength_max d_nResizeAmt;
+
+  (psrc, s_nBits, s_nLength, s_nLength_max, s_List, s_pList, s_nResizeAmt) <- bitvector_t n "src";
+  bitvector_t_preconditions n s_nBits s_nLength s_nLength_max s_nResizeAmt;
+
+  crucible_execute_func [pdst, psrc];
+
+  (d_nBits', d_nLength', d_nLength_max', d_List', d_pList', d_nResizeAmt') <- bitvector_t' n "dst'" pdst;
+  bitvector_t_postconditions n d_nBits' d_nLength' d_nLength_max' d_nResizeAmt';
+
+  (s_nBits', s_nLength', s_nLength_max', s_List', s_pList', s_nResizeAmt') <- bitvector_t' n "src'" psrc;
+  bitvector_t_postconditions n s_nBits' s_nLength' s_nLength_max' s_nResizeAmt';
+
+  crucible_postcond {{ s_List == d_List' }};
+};
+
 let bitvector_t_copy_spec (n : Int) = do {
   (pbv, nBits, nLength, nLength_max, List, pList, nResizeAmt) <- bitvector_t n "bv";
 
@@ -511,6 +529,8 @@ bitvector_t_cleanHighBits_result <- crucible_llvm_verify bitvector_bc "bitvector
 bitvector_t_fromHexString_result <- crucible_llvm_verify bitvector_bc "bitvector_t_fromHexString" [] true (bitvector_t_fromHexString_spec nHexChars) z3;
 
 bitvector_t_copy_result <- crucible_llvm_verify bitvector_bc "bitvector_t_copy" [] true (bitvector_t_copy_spec nBits) z3;
+
+bitvector_t_copyUpdate_result <- crucible_llvm_verify bitvector_bc "bitvector_t_copyUpdate" [] true (bitvector_t_copyUpdate_spec nBits) z3;
 
 bitvector_t_widen_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_widen" [] true (bitvector_t_widen_spec nBits nBitsToAdd) z3);
 
