@@ -8,7 +8,7 @@ bitvector_t *bitvector_t_alloc(uint32_t nBits) {
   bitvector_t *bv = malloc(1 * sizeof(bitvector_t));
   bv->nBits = nBits;
 
-  uint8_t ret = uint64_t_list_init(&bv->bits, BITS_TO_WORDS(bv->nBits), 0);
+  uint8_t ret = uint64_t_list_init(&bv->bits, BITS_TO_WORDS(bv->nBits));
   if(ret != NO_ERROR) return NULL;
 
   bv->bits.nLength = BITS_TO_WORDS(bv->nBits);
