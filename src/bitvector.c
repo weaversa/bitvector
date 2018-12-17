@@ -257,38 +257,34 @@ uint32_t bitvector_t_popcount(bitvector_t *bv) {
   return ret;
 }
 
-void bitvector_t_sliceUpdate(bitvector_t *slice, bitvector_t *bv, uint32_t b0, uint32_t b1) {
+void bitvector_t_sliceUpdate(bitvector_t *slice, bitvector_t *bv, uint32_t start, uint32_t length) {
   if(slice == NULL || bv == NULL) return;
-  if(b0 > b1) {
-    fprintf(stderr, "End of slice is before the beginning.\n");
-    return;
+
+  if(slice->nBits < length) {
+    bitvector_t_widen(slice, length - slice->nBits);
+  } else if(slice->nBits > length) {
+    bitvector_t_dropUpdate(slice, slice->nBits - length);
   }
 
-  if(slice->nBits < (b1-b0)) {
-    bitvector_t_widen(slice, (b1-b0) - slice->nBits);
-  } else if(slice->nBits > (b1-b0)) {
-    bitvector_t_dropUpdate(slice, slice->nBits - (b1-b0));
-  }
-
-  if(bv->nBits < (b1-b0)) {
-    fprintf(stderr, "Cannot take a slice of size %u from a bitvector_t with only %u bits.\n", b1-b0, bv->nBits);
+  if(bv->nBits < start + length) {
+    fprintf(stderr, "Cannot take a slice of length %u starting at bit %u from a bitvector_t with only %u bits.\n", length, start, bv->nBits);
     return;
   }
   
-  size_t start  = b0 >> 6;
-  size_t length = ((b1-b0) >> 6) + 1;
+  size_t startW  = start >> 6;
+  size_t lengthW = (length >> 6) + 1;
   size_t i;
-  for(i = 0; i < length; i++) {
-    slice->bits.pList[i] = bv->bits.pList[start + i] >> (b0&0x3f);
-    if((start + i + 1 < bv->bits.nLength) && ((b0&0x3f) != 0)) {
-      slice->bits.pList[i] |= bv->bits.pList[start + i + 1] << (64 - (b0&0x3f));
+  for(i = 0; i < lengthW; i++) {
+    slice->bits.pList[i] = bv->bits.pList[startW + i] >> (start&0x3f);
+    if((startW + i + 1 < bv->bits.nLength) && ((start&0x3f) != 0)) {
+      slice->bits.pList[i] |= bv->bits.pList[startW + i + 1] << (64 - (start&0x3f));
     }
   }
 }
 
-bitvector_t *bitvector_t_slice(bitvector_t *bv, uint32_t b0, uint32_t b1) {
-  bitvector_t *slice = bitvector_t_alloc(b1-b0);
-  bitvector_t_sliceUpdate(slice, bv, b0, b1);
+bitvector_t *bitvector_t_slice(bitvector_t *bv, uint32_t start, uint32_t length) {
+  bitvector_t *slice = bitvector_t_alloc(length);
+  bitvector_t_sliceUpdate(slice, bv, start, length);
   return slice;
 }
 

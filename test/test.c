@@ -51,9 +51,9 @@ int main() {
 
   bitvector_t *slice = bitvector_t_alloc(102);
 
-  bitvector_t_sliceUpdate(slice, z2, 16, 84);
+  bitvector_t_sliceUpdate(slice, z2, 16, 50);
 
-  fprintf(stderr, "slice : [%d] = z2!![84--16] = %s\n", slice->nBits, tmp=bitvector_t_toHexString(slice)); free(tmp);
+  fprintf(stderr, "slice : [%d] = z2!![??] = %s\n", slice->nBits, tmp=bitvector_t_toHexString(slice)); free(tmp);
 
   equal = bitvector_t_equal(slice, z2);
   
@@ -63,15 +63,15 @@ int main() {
 
   fprintf(stderr, "popcount(slice) == %u\n", bitvector_t_popcount(slice));
 
-  bitvector_t *slice2 = bitvector_t_slice(z, 43, 81);
+  bitvector_t *slice2 = bitvector_t_slice(z, 43, 21);
 
-  fprintf(stderr, "z!![81..43] = %s\n", tmp=bitvector_t_toHexString(slice2)); free(tmp);
+  fprintf(stderr, "z!![??] = %s\n", tmp=bitvector_t_toHexString(slice2)); free(tmp);
 
   bitvector_t *bucket = bitvector_from_bytes((uint8_t *)slice2, sizeof(bitvector_t));
   fprintf(stderr, "bucket = %s\n", tmp=bitvector_t_toHexString(bucket)); free(tmp);
   
   bitvector_t *slice2_clone = (bitvector_t *)bitvector_to_bytes(bucket);
-  fprintf(stderr, "z!![81..43] = %s\n", tmp=bitvector_t_toHexString(slice2_clone)); free(tmp);
+  fprintf(stderr, "z!![??] = %s\n", tmp=bitvector_t_toHexString(slice2_clone)); free(tmp);
 
   bitvector_t_free(x);
   bitvector_t_free(y);
