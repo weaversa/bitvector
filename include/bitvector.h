@@ -35,7 +35,7 @@ inline bitvector_t *bitvector_t_alloc(uint32_t nBits) {
   bv->nBits = nBits;
 
   uint8_t ret = uint64_t_list_init(&bv->bits, BITS_TO_WORDS(bv->nBits));
-  if(ret != NO_ERROR) return NULL;
+  if(ret != C_LIST_NO_ERROR) return NULL;
 
   bv->bits.nLength = BITS_TO_WORDS(bv->nBits);
   bitvector_t_zeroize(bv);
@@ -66,7 +66,7 @@ inline void bitvector_t_widen(bitvector_t *bv, uint32_t nBitsToAdd) {
   bv->nBits += nBitsToAdd;
   size_t old_length = bv->bits.nLength;
   uint8_t ret = uint64_t_list_resize(&bv->bits, BITS_TO_WORDS(bv->nBits));
-  if(ret != NO_ERROR) return;
+  if(ret != C_LIST_NO_ERROR) return;
   bv->bits.nLength = BITS_TO_WORDS(bv->nBits);
 
   memset((void *)(bv->bits.pList+old_length), 0, (bv->bits.nLength - old_length) * sizeof(uint64_t));
@@ -121,7 +121,7 @@ inline char *bitvector_t_toHexString(bitvector_t *bv) {
 }
 
 inline void bitvector_t_copyUpdate(bitvector_t *dst, bitvector_t *src) {
-  if(uint64_t_list_copy(&dst->bits, &src->bits) != NO_ERROR) {
+  if(uint64_t_list_copy(&dst->bits, &src->bits) != C_LIST_NO_ERROR) {
     fprintf(stderr, "bitvector_t copy failed.\n");
     return;
   }
