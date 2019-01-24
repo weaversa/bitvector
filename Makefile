@@ -59,7 +59,7 @@ saw: saw/bitvector.saw $(BCOBJECTS) FORCE
 	saw $<
 
 clean: FORCE
-	rm -rf *~ */*~ $(OBJECTS) $(BCOBJECTS) ./.depend test/test *.dSYM test/test.dSYM
+	rm -rf *~ */*~ $(OBJECTS) $(BCOBJECTS) ./.depend test/test *.dSYM test/test.dSYM lib/lib$(BITVECTORLIB).a
 
 edit: FORCE
 	emacs -nw $(EXTRAS) $(HEADERS) $(SOURCES)
