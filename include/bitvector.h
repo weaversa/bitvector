@@ -15,7 +15,7 @@
 #include <inttypes.h>
 #include <ctype.h>
 
-#include "c_list_types.h"
+#include "../lib/c_list_types/include/c_list_types.h"
 
 #define BITS_TO_WORDS(nBits) ((uint32_t) ((((int32_t)nBits) - 1) >> 6) + 1)
 

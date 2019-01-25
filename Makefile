@@ -13,7 +13,7 @@ CC = gcc
 DBG = #-g -Wall -fstack-protector-all -pedantic
 OPT = -march=native -O3 -DNDEBUG -ffast-math -fomit-frame-pointer -finline-functions
 VERIFY = #-O1
-INCLUDES = -Iinclude -Ilib/c_list_types/include
+INCLUDES = -Iinclude
 LIBS = -l$(BITVECTORLIB)
 LDFLAGS = -Llib
 CFLAGS = -std=gnu99 $(DBG) $(OPT) $(VERIFY) $(INCLUDES)
