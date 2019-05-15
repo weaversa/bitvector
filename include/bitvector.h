@@ -64,7 +64,7 @@ inline void bitvector_t_widen(bitvector_t *bv, uint32_t nBitsToAdd) {
   bitvector_t_cleanHighBits(bv);
 
   bv->nBits += nBitsToAdd;
-  uint32_t old_length = bv->bits.nLength;
+  uint32_t old_length = (uint32_t) bv->bits.nLength;
   uint8_t ret = uint64_t_list_resize(&bv->bits, BITS_TO_WORDS(bv->nBits));
   if(ret != C_LIST_NO_ERROR) return;
   bv->bits.nLength = BITS_TO_WORDS(bv->nBits);
@@ -72,10 +72,11 @@ inline void bitvector_t_widen(bitvector_t *bv, uint32_t nBitsToAdd) {
   memset((void *)(bv->bits.pList+old_length), 0, (bv->bits.nLength - old_length) * sizeof(uint64_t));
 }
 
-inline uint8_t hexchar_to_digit(uint8_t c) {
-  if(c >= 'a' && c <= 'f')      return c - 'a' + 10;
-  else if(c >= 'A' && c <= 'F') return c - 'A' + 10;
-  else if(c >= '0' && c <= '9') return c - '0';
+inline uint64_t hexchar_to_digit(char c) {
+  uint64_t cu = (uint64_t) c;
+  if(c >= 'a' && c <= 'f')      return cu - 97 + 10;
+  else if(c >= 'A' && c <= 'F') return cu - 65 + 10;
+  else if(c >= '0' && c <= '9') return cu - 48;
   else return 16;
 }
 
@@ -86,7 +87,7 @@ inline bitvector_t *bitvector_t_fromHexString(char *string, uint32_t length) {
   if(bv == NULL) return NULL;
 
   for(i = 0; i < length; i++) {
-    uint64_t digit = (uint64_t) hexchar_to_digit(string[(length - i) - 1]);
+    uint64_t digit = hexchar_to_digit(string[(length - i) - 1]);
     if(digit == 16) break;
     bv->bits.pList[i>>4] |= digit << ((i&0xf)*4);
   }
@@ -147,7 +148,7 @@ inline bitvector_t *bitvector_t_drop(bitvector_t *bv, uint32_t nBitsToDrop) {
     fprintf(stderr, "Cannot drop %u bits from a bitvector_t with only %u bits.\n", nBitsToDrop, bv->nBits);
     return NULL;
   }
-  uint32_t nLength_old = bv->bits.nLength;
+  uint32_t nLength_old = (uint32_t) bv->bits.nLength;
   uint32_t nBits_old = bv->nBits;
   bv->nBits -= nBitsToDrop;
   bv->bits.nLength = BITS_TO_WORDS(bv->nBits);
@@ -212,7 +213,7 @@ inline uint8_t *bitvector_to_bytes(bitvector_t *bv) {
 
 inline bitvector_t *bitvector_t_concat(bitvector_t *x, bitvector_t *y) {
   uint32_t start = y->nBits >> 6;
-  uint32_t length = x->bits.nLength;
+  uint32_t length = (uint32_t) x->bits.nLength;
   uint32_t i;
 
   bitvector_t *ret = bitvector_t_copy(y);
@@ -273,7 +274,7 @@ inline uint32_t bitvector_t_popcount(bitvector_t *bv) {
   uint32_t ret = 0;
 
   for(i = 0; i < bv->bits.nLength; i++) {
-    ret += __builtin_popcountll(bv->bits.pList[i]);
+    ret += (uint32_t) __builtin_popcountll(bv->bits.pList[i]);
   }
 
   return ret;
