@@ -64,7 +64,7 @@ inline void bitvector_t_widen(bitvector_t *bv, uint32_t nBitsToAdd) {
   bitvector_t_cleanHighBits(bv);
 
   bv->nBits += nBitsToAdd;
-  size_t old_length = bv->bits.nLength;
+  uint32_t old_length = bv->bits.nLength;
   uint8_t ret = uint64_t_list_resize(&bv->bits, BITS_TO_WORDS(bv->nBits));
   if(ret != C_LIST_NO_ERROR) return;
   bv->bits.nLength = BITS_TO_WORDS(bv->nBits);
@@ -73,14 +73,17 @@ inline void bitvector_t_widen(bitvector_t *bv, uint32_t nBitsToAdd) {
 }
 
 inline uint64_t hexchar_to_digit(char c) {
-  if(c >= 'a' && c <= 'f')      return (c - 'a') + 10;
-  else if(c >= 'A' && c <= 'F') return (c - 'A') + 10;
-  else if(c >= '0' && c <= '9') return c - '0';
-  else return 16;
+  char ret;
+  if(c >= 'a' && c <= 'f')      ret = (c - 'a') + 10;
+  else if(c >= 'A' && c <= 'F') ret = (c - 'A') + 10;
+  else if(c >= '0' && c <= '9') ret = c - '0';
+  else ret = 16;
+
+  return (uint64_t) ret;
 }
 
-inline bitvector_t *bitvector_t_fromHexString(char *string, size_t length) {
-  size_t i;
+inline bitvector_t *bitvector_t_fromHexString(char *string, uint32_t length) {
+  uint32_t i;
 
   bitvector_t *bv = bitvector_t_alloc(length*4);
   if(bv == NULL) return NULL;
@@ -101,7 +104,7 @@ inline bitvector_t *bitvector_t_fromHexString(char *string, size_t length) {
 }
 
 inline char *bitvector_t_toHexString(bitvector_t *bv) {
-  size_t i;
+  uint32_t i;
   if(bv == NULL) return NULL;
 
   bitvector_t_cleanHighBits(bv);
@@ -147,7 +150,7 @@ inline bitvector_t *bitvector_t_drop(bitvector_t *bv, uint32_t nBitsToDrop) {
     fprintf(stderr, "Cannot drop %u bits from a bitvector_t with only %u bits.\n", nBitsToDrop, bv->nBits);
     return NULL;
   }
-  size_t nLength_old = bv->bits.nLength;
+  uint32_t nLength_old = bv->bits.nLength;
   uint32_t nBits_old = bv->nBits;
   bv->nBits -= nBitsToDrop;
   bv->bits.nLength = BITS_TO_WORDS(bv->nBits);
@@ -160,7 +163,7 @@ inline bitvector_t *bitvector_t_drop(bitvector_t *bv, uint32_t nBitsToDrop) {
   return ret;
 }
 
-inline void bitvector_from_bytesUpdate(bitvector_t *bv, uint8_t *bytes, size_t nBytes) {
+inline void bitvector_from_bytesUpdate(bitvector_t *bv, uint8_t *bytes, uint32_t nBytes) {
   if(bv == NULL) return;
   if(bytes == NULL) return;
   
@@ -170,13 +173,13 @@ inline void bitvector_from_bytesUpdate(bitvector_t *bv, uint8_t *bytes, size_t n
     bitvector_t_dropUpdate(bv, bv->nBits - (nBytes*8));
   }
 
-  size_t i;
+  uint32_t i;
   for(i = 0; i < nBytes; i++) {
     bv->bits.pList[i>>3] |= ((uint64_t) bytes[i])<<((i&0x7) * 8);
   }
 }
 
-inline bitvector_t *bitvector_from_bytes(uint8_t *bytes, size_t nBytes) {
+inline bitvector_t *bitvector_from_bytes(uint8_t *bytes, uint32_t nBytes) {
   if(bytes == NULL) return NULL;
   bitvector_t *bv = bitvector_t_alloc(nBytes*8);
   bitvector_from_bytesUpdate(bv, bytes, nBytes);
@@ -191,8 +194,8 @@ inline void bitvector_to_bytesUpdate(uint8_t *bytes, bitvector_t *bv) {
     return;
   }
 
-  size_t nBytes = bv->nBits / 8;
-  size_t i;
+  uint32_t nBytes = bv->nBits / 8;
+  uint32_t i;
   for(i = 0; i < nBytes; i++) {
     bytes[i] = (uint8_t) (bv->bits.pList[i>>3]>>((i&0x7) * 8));
   }
@@ -211,9 +214,9 @@ inline uint8_t *bitvector_to_bytes(bitvector_t *bv) {
 }
 
 inline bitvector_t *bitvector_t_concat(bitvector_t *x, bitvector_t *y) {
-  size_t start = y->nBits >> 6;
-  size_t length = x->bits.nLength;
-  size_t i;
+  uint32_t start = y->nBits >> 6;
+  uint32_t length = x->bits.nLength;
+  uint32_t i;
 
   bitvector_t *ret = bitvector_t_copy(y);
   bitvector_t_cleanHighBits(ret);
@@ -230,7 +233,7 @@ inline bitvector_t *bitvector_t_concat(bitvector_t *x, bitvector_t *y) {
 }
 
 inline void bitvector_t_negateUpdate(bitvector_t *bv) {
-  size_t i;
+  uint32_t i;
   for(i = 0; i < bv->bits.nLength; i++) {
     bv->bits.pList[i] = ~bv->bits.pList[i];
   }
@@ -269,7 +272,7 @@ inline void bitvector_t_setBit(bitvector_t *bv, uint32_t index, uint8_t value) {
 inline uint32_t bitvector_t_popcount(bitvector_t *bv) {
   bitvector_t_cleanHighBits(bv);
 
-  size_t i;
+  uint32_t i;
   uint32_t ret = 0;
 
   for(i = 0; i < bv->bits.nLength; i++) {
@@ -293,9 +296,9 @@ inline void bitvector_t_sliceUpdate(bitvector_t *slice, bitvector_t *bv, uint32_
     return;
   }
   
-  size_t startW  = start >> 6;
-  size_t lengthW = (length >> 6) + 1;
-  size_t i;
+  uint32_t startW  = start >> 6;
+  uint32_t lengthW = (length >> 6) + 1;
+  uint32_t i;
   for(i = 0; i < lengthW; i++) {
     slice->bits.pList[i] = bv->bits.pList[startW + i] >> (start&0x3f);
     if((startW + i + 1 < bv->bits.nLength) && ((start&0x3f) != 0)) {
@@ -311,7 +314,7 @@ inline bitvector_t *bitvector_t_slice(bitvector_t *bv, uint32_t start, uint32_t 
 }
 
 inline uint8_t bitvector_t_equal(bitvector_t *x, bitvector_t *y) {
-  size_t i;
+  uint32_t i;
   if(x == y) return 1;
   if(x == NULL || y == NULL) return 0;
   if(x->nBits != y->nBits) return 0;
@@ -330,7 +333,7 @@ inline uint8_t bitvector_t_equal(bitvector_t *x, bitvector_t *y) {
 
 #define bitvector_t_zipWithIncludes(NAME, OP)                            \
 inline void bitvector_t_##NAME##Update(bitvector_t *x, bitvector_t *y) { \
-  size_t i;                                                              \
+  uint32_t i;                                                            \
   if(x == NULL || y == NULL) return;                                     \
   if(x->nBits != y->nBits) {                                             \
     fprintf(stderr, "Cannot NAME two vectors of different sizes.\n");    \

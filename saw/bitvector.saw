@@ -121,7 +121,7 @@ let bitvector_t_fromHexString_spec (n : Int) = do {
 			(c >= '0' /\ c <= '9')
 	              | c <- string ] == ~zero }};
 
-  crucible_execute_func [pstring, crucible_term {{ `n : [64] }}];
+  crucible_execute_func [pstring, crucible_term {{ `n : [32] }}];
 
   (pbv, nBits', nLength', nLength_max', List', pList') <-
     bitvector_t (eval_int {{ `(n*4) : [32] }}) "bv";
