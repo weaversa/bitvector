@@ -73,9 +73,9 @@ inline void bitvector_t_widen(bitvector_t *bv, uint32_t nBitsToAdd) {
 }
 
 inline uint8_t hexchar_to_digit(char c) {
-  if(c >= 'a' && c <= 'f')      return (uint8_t) c - 'a' + 10;
-  else if(c >= 'A' && c <= 'F') return (uint8_t) c - 'A' + 10;
-  else if(c >= '0' && c <= '9') return (uint8_t) c - '0';
+  if(c >= 'a' && c <= 'f')      return ((uint8_t) c) - 'a' + 10;
+  else if(c >= 'A' && c <= 'F') return ((uint8_t) c) - 'A' + 10;
+  else if(c >= '0' && c <= '9') return ((uint8_t) c) - '0';
   else return 16;
 }
 
