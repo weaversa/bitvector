@@ -72,14 +72,11 @@ inline void bitvector_t_widen(bitvector_t *bv, uint32_t nBitsToAdd) {
   memset((void *)(bv->bits.pList+old_length), 0, (bv->bits.nLength - old_length) * sizeof(uint64_t));
 }
 
-inline uint64_t hexchar_to_digit(char c) {
-  char ret;
-  if(c >= 'a' && c <= 'f')      ret = (c - 'a') + 10;
-  else if(c >= 'A' && c <= 'F') ret = (c - 'A') + 10;
-  else if(c >= '0' && c <= '9') ret = c - '0';
-  else ret = 16;
-
-  return (uint64_t) ret;
+inline uint8_t hexchar_to_digit(char c) {
+  if(c >= 'a' && c <= 'f')      return (c - u'a') + 10;
+  else if(c >= 'A' && c <= 'F') return (c - u'A') + 10;
+  else if(c >= '0' && c <= '9') return c - u'0';
+  else return 16;
 }
 
 inline bitvector_t *bitvector_t_fromHexString(char *string, uint32_t length) {
@@ -89,7 +86,7 @@ inline bitvector_t *bitvector_t_fromHexString(char *string, uint32_t length) {
   if(bv == NULL) return NULL;
 
   for(i = 0; i < length; i++) {
-    uint64_t digit = hexchar_to_digit(string[(length - i) - 1]);
+    uint64_t digit = (uint64_t) hexchar_to_digit(string[(length - i) - 1]);
     if(digit == 16) break;
     bv->bits.pList[i>>4] |= digit << ((i&0xf)*4);
   }
