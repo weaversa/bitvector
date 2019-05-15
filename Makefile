@@ -10,8 +10,8 @@ BCOBJECTS = $(SOURCES:src/%.c=obj/%.bc)
 
 BITVECTORLIB = bitvector
 CC = gcc
-DBG = -g -Wall -fstack-protector-all -pedantic -Wconversion
-#OPT = -march=native -O3 -DNDEBUG -ffast-math -fomit-frame-pointer -finline-functions
+#DBG = -g -Wall -fstack-protector-all -pedantic -Wconversion
+OPT = -march=native -O3 -DNDEBUG -ffast-math -fomit-frame-pointer -finline-functions
 VERIFY = #-O1
 INCLUDES = -Iinclude
 LIBS = -l$(BITVECTORLIB)
