@@ -72,10 +72,10 @@ inline void bitvector_t_widen(bitvector_t *bv, uint32_t nBitsToAdd) {
   memset((void *)(bv->bits.pList+old_length), 0, (bv->bits.nLength - old_length) * sizeof(uint64_t));
 }
 
-inline uint8_t hexchar_to_digit(char c) {
-  if(c >= 'a' && c <= 'f')      return ((uint8_t) c) - 'a' + 10;
-  else if(c >= 'A' && c <= 'F') return ((uint8_t) c) - 'A' + 10;
-  else if(c >= '0' && c <= '9') return ((uint8_t) c) - '0';
+inline uint8_t hexchar_to_digit(uint8_t c) {
+  if(c >= 'a' && c <= 'f')      return c - 'a' + 10;
+  else if(c >= 'A' && c <= 'F') return c - 'A' + 10;
+  else if(c >= '0' && c <= '9') return c - '0';
   else return 16;
 }
 
