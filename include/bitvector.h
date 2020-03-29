@@ -230,6 +230,22 @@ inline bitvector_t *bitvector_t_concat(bitvector_t *x, bitvector_t *y) {
   return ret;
 }
 
+inline bitvector_t *bitvector_t_join(bitvector_t **slice, uint32_t parts) {
+  if(slice == NULL) return NULL;
+
+  bitvector_t *ret = bitvector_t_copy(slice[0]);
+  if(parts == 1) return ret;
+  
+  uint32_t i;
+  for(i = 1; i < parts; i++) {
+    bitvector_t *tmp = bitvector_t_concat(ret, slice[i]);
+    bitvector_t_free(ret);
+    ret = tmp;
+  }
+
+  return ret;
+}
+
 inline void bitvector_t_negateUpdate(bitvector_t *bv) {
   uint32_t i;
   for(i = 0; i < bv->bits.nLength; i++) {
@@ -309,6 +325,25 @@ inline bitvector_t *bitvector_t_slice(bitvector_t *bv, uint32_t start, uint32_t 
   bitvector_t *slice = bitvector_t_alloc(length);
   bitvector_t_sliceUpdate(slice, bv, start, length);
   return slice;
+}
+
+inline bitvector_t **bitvector_t_split(bitvector_t *bv, uint32_t parts) {
+  if(bv == NULL) return NULL;
+  if((bv->nBits == 0) || (bv->nBits % parts != 0)) {
+    fprintf(stderr, "Cannot split a bitvector_t of length %u into %u equal sized parts.\n", bv->nBits, parts);
+    return NULL;
+  }
+
+  bitvector_t **slices = (bitvector_t **)malloc(parts * sizeof(bitvector_t *));
+
+  uint32_t nBits = bv->nBits / parts;
+    
+  uint32_t i;
+  for(i = 0; i < parts; i++) {
+    slices[i] = bitvector_t_slice(bv, ((parts-1) - i)*nBits, nBits);
+  }
+
+  return slices;
 }
 
 inline uint8_t bitvector_t_equal(bitvector_t *x, bitvector_t *y) {

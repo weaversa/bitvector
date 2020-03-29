@@ -19,6 +19,7 @@ extern bitvector_t *bitvector_from_bytes(uint8_t *bytes, uint32_t nBytes);
 extern void bitvector_to_bytesUpdate(uint8_t *bytes, bitvector_t *bv);
 extern uint8_t *bitvector_to_bytes(bitvector_t *bv);
 extern bitvector_t *bitvector_t_concat(bitvector_t *x, bitvector_t *y);
+extern bitvector_t *bitvector_t_join(bitvector_t **slice, uint32_t parts);
 extern void bitvector_t_negateUpdate(bitvector_t *bv);
 extern bitvector_t *bitvector_t_negate(bitvector_t *bv);
 extern uint8_t bitvector_t_getBit(bitvector_t *bv, uint32_t index);
@@ -26,6 +27,7 @@ extern void bitvector_t_setBit(bitvector_t *bv, uint32_t index, uint8_t value);
 extern uint32_t bitvector_t_popcount(bitvector_t *bv);
 extern void bitvector_t_sliceUpdate(bitvector_t *slice, bitvector_t *bv, uint32_t start, uint32_t length);
 extern bitvector_t *bitvector_t_slice(bitvector_t *bv, uint32_t start, uint32_t length);
+extern bitvector_t **bitvector_t_split(bitvector_t *bv, uint32_t parts);
 extern uint8_t bitvector_t_equal(bitvector_t *x, bitvector_t *y);
 
 #define bitvector_t_zipWith(NAME)                                       \

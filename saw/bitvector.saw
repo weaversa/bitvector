@@ -509,13 +509,13 @@ let bitvector_t_equal_spec (n : Int) = do {
 
 bitvector_bc <- llvm_load_module "../obj/bitvector.bc";
 
-let nBits = 1000;
+let nBits = 200;
 let nBits2 = 10;
 let nBitsToAdd = 10;
 let nBitsToDrop = 10;
 let nHexChars = 17;
-let slicestart = 100;
-let slicelength = 741;
+let slicestart = 54;
+let slicelength = 113;
 
 bitvector_t_alloc_result <- crucible_llvm_verify bitvector_bc "bitvector_t_alloc" [] false (bitvector_t_alloc_spec nBits) z3;
 

@@ -73,6 +73,26 @@ int main() {
   bitvector_t *slice2_clone = (bitvector_t *)bitvector_to_bytes(bucket);
   fprintf(stderr, "z!![??] = %s\n", tmp=bitvector_t_toHexString(slice2_clone)); free(tmp);
 
+  bitvector_t **zslices = bitvector_t_split(z, 31);
+
+  fprintf(stderr, "z slices = [");
+  uint32_t i;
+  for(i = 0; i < 31; i++) {
+    fprintf(stderr, "%s, ", tmp=bitvector_t_toHexString(zslices[i])); free(tmp);
+  }
+  fprintf(stderr, "]\n");
+
+  bitvector_t *zjoin = bitvector_t_join(zslices, 31);
+  fprintf(stderr, "zjoin : [%d] = %s\n", z->nBits, tmp=bitvector_t_toHexString(zjoin)); free(tmp);
+
+  equal = bitvector_t_equal(z, zjoin);
+  
+  fprintf(stderr, "z == zjoin ? %u\n", equal);
+
+  for(i = 0; i < 31; i++) {
+    bitvector_t_free(zslices[i]);
+  }
+  bitvector_t_free(zjoin);
   bitvector_t_free(x);
   bitvector_t_free(y);
   bitvector_t_free(z);
