@@ -63,35 +63,38 @@ int main() {
 
   fprintf(stderr, "popcount(slice) == %u\n", bitvector_t_popcount(slice));
 
-  bitvector_t *slice2 = bitvector_t_slice(z, 43, 21);
+  bitvector_t *slice2 = bitvector_t_slice(z, 43, 24);
 
   fprintf(stderr, "z!![??] = %s\n", tmp=bitvector_t_toHexString(slice2)); free(tmp);
 
-  bitvector_t *bucket = bitvector_from_bytes((uint8_t *)slice2, sizeof(bitvector_t));
+  uint8_t *slice2_clone = bitvector_t_to_bytes(slice2);
+  fprintf(stderr, "z!![??] = ");
+  uint32_t i;  
+  for(i = 0; i < slice2->nBits/8; i++) {
+    fprintf(stderr, "%.2x", slice2_clone[i]);
+  }
+  fprintf(stderr, "\n");
+  
+  bitvector_t *bucket = bitvector_t_from_bytes(slice2_clone, slice2->nBits/8);
   fprintf(stderr, "bucket = %s\n", tmp=bitvector_t_toHexString(bucket)); free(tmp);
   
-  bitvector_t *slice2_clone = (bitvector_t *)bitvector_to_bytes(bucket);
-  fprintf(stderr, "z!![??] = %s\n", tmp=bitvector_t_toHexString(slice2_clone)); free(tmp);
 
-  bitvector_t **zslices = bitvector_t_split(z, 31);
+  sequence_t *zsequence = bitvector_t_split(z, 31);
 
-  fprintf(stderr, "z slices = [");
-  uint32_t i;
-  for(i = 0; i < 31; i++) {
-    fprintf(stderr, "%s, ", tmp=bitvector_t_toHexString(zslices[i])); free(tmp);
+  fprintf(stderr, "z sequence = [");
+  for(i = 0; i < zsequence->nLength; i++) {
+    fprintf(stderr, "%s, ", tmp=bitvector_t_toHexString(zsequence->pList[i])); free(tmp);
   }
   fprintf(stderr, "]\n");
 
-  bitvector_t *zjoin = bitvector_t_join(zslices, 31);
+  bitvector_t *zjoin = bitvector_t_join(zsequence);
   fprintf(stderr, "zjoin : [%d] = %s\n", z->nBits, tmp=bitvector_t_toHexString(zjoin)); free(tmp);
 
   equal = bitvector_t_equal(z, zjoin);
   
   fprintf(stderr, "z == zjoin ? %u\n", equal);
 
-  for(i = 0; i < 31; i++) {
-    bitvector_t_free(zslices[i]);
-  }
+  sequence_t_pfree(zsequence, bitvector_t_free);
   bitvector_t_free(zjoin);
   bitvector_t_free(x);
   bitvector_t_free(y);
