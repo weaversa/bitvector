@@ -28,20 +28,6 @@ typedef struct bitvector_t {
 
 create_c_list_headers(sequence_t, bitvector_t *)
 
-/*
-struct NODE { 
-    bool is_leaf; 
-    union { 
-        struct
-        { 
-            struct NODE* left; 
-            struct NODE* right; 
-        } internal; 
-        double data; 
-    } info; 
-};
-*/ 
-
 inline void bitvector_t_zeroize(bitvector_t *bv) {
   memset((void *)bv->bits.pList, 0, bv->bits.nLength * sizeof(uint64_t));
 }
