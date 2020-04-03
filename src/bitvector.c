@@ -1,10 +1,11 @@
 #include "bitvector.h"
 
 create_c_list_type(uint64_t_list, uint64_t)
-create_c_list_type(sequence_t, bitvector_t *)
+create_c_list_type(sequence_t, bitvector_t)
 
 extern void bitvector_t_zeroize(bitvector_t *bv);
 extern bitvector_t *bitvector_t_alloc(uint32_t nBits);
+extern void bitvector_t_free_inner(bitvector_t *bv);
 extern void bitvector_t_free(bitvector_t *bv);
 extern void bitvector_t_cleanHighBits(bitvector_t *bv);
 extern void bitvector_t_widen(bitvector_t *bv, uint32_t nBitsToAdd);
@@ -20,7 +21,7 @@ extern bitvector_t *bitvector_t_from_bytes(uint8_t *bytes, uint32_t nBytes);
 extern void bitvector_t_to_bytesUpdate(uint8_t *bytes, bitvector_t *bv);
 extern uint8_t *bitvector_t_to_bytes(bitvector_t *bv);
 extern bitvector_t *bitvector_t_concat(bitvector_t *x, bitvector_t *y);
-extern bitvector_t *bitvector_t_join(sequence_t *sequence);
+extern bitvector_t *sequence_t_join(sequence_t *sequence);
 extern void bitvector_t_negateUpdate(bitvector_t *bv);
 extern bitvector_t *bitvector_t_negate(bitvector_t *bv);
 extern uint8_t bitvector_t_getBit(bitvector_t *bv, uint32_t index);

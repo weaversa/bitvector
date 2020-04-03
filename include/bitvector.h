@@ -26,7 +26,7 @@ typedef struct bitvector_t {
   uint64_t_list bits;
 } bitvector_t;
 
-create_c_list_headers(sequence_t, bitvector_t *)
+create_c_list_headers(sequence_t, bitvector_t)
 
 inline void bitvector_t_zeroize(bitvector_t *bv) {
   memset((void *)bv->bits.pList, 0, bv->bits.nLength * sizeof(uint64_t));
@@ -44,13 +44,20 @@ inline bitvector_t *bitvector_t_alloc(uint32_t nBits) {
   return bv;
 }
 
-inline void bitvector_t_free(bitvector_t *bv) {
+inline void bitvector_t_free_inner(bitvector_t *bv) {
   if(bv == NULL) {
     fprintf(stderr, "Cannot free NULL bitvector_t\n");
-    assert(0);
     return;
   }
   uint64_t_list_free(&bv->bits, NULL);
+}
+
+inline void bitvector_t_free(bitvector_t *bv) {
+  if(bv == NULL) {
+    fprintf(stderr, "Cannot free NULL bitvector_t\n");
+    return;
+  }
+  bitvector_t_free_inner(bv);
   free(bv);
 }
 
@@ -233,19 +240,19 @@ inline bitvector_t *bitvector_t_concat(bitvector_t *x, bitvector_t *y) {
   return ret;
 }
 
-inline bitvector_t *bitvector_t_join(sequence_t *sequence) {
+inline bitvector_t *sequence_t_join(sequence_t *sequence) {
   if(sequence == NULL) return NULL;
 
   uint32_t parts = sequence->nLength;
 
   if(parts == 0) return NULL;
 
-  bitvector_t *ret = bitvector_t_copy(sequence->pList[0]);
+  bitvector_t *ret = bitvector_t_copy(&sequence->pList[0]);
   if(parts == 1) return ret;
   
   uint32_t i;
   for(i = 1; i < parts; i++) {
-    bitvector_t *tmp = bitvector_t_concat(ret, sequence->pList[i]);
+    bitvector_t *tmp = bitvector_t_concat(ret, &sequence->pList[i]);
     bitvector_t_free(ret);
     ret = tmp;
   }
@@ -347,7 +354,7 @@ inline sequence_t *bitvector_t_split(bitvector_t *bv, uint32_t parts) {
     
   uint32_t i;
   for(i = 0; i < parts; i++) {
-    sequence_t_push(sequence, bitvector_t_slice(bv, ((parts-1) - i)*nBits, nBits));
+    sequence_t_push(sequence, *bitvector_t_slice(bv, ((parts-1) - i)*nBits, nBits));
   }
 
   return sequence;

@@ -83,18 +83,18 @@ int main() {
 
   fprintf(stderr, "z sequence = [");
   for(i = 0; i < zsequence->nLength; i++) {
-    fprintf(stderr, "%s, ", tmp=bitvector_t_toHexString(zsequence->pList[i])); free(tmp);
+    fprintf(stderr, "%s, ", tmp=bitvector_t_toHexString(&zsequence->pList[i])); free(tmp);
   }
   fprintf(stderr, "]\n");
 
-  bitvector_t *zjoin = bitvector_t_join(zsequence);
+  bitvector_t *zjoin = sequence_t_join(zsequence);
   fprintf(stderr, "zjoin : [%d] = %s\n", z->nBits, tmp=bitvector_t_toHexString(zjoin)); free(tmp);
 
   equal = bitvector_t_equal(z, zjoin);
   
   fprintf(stderr, "z == zjoin ? %u\n", equal);
 
-  sequence_t_pfree(zsequence, bitvector_t_free);
+  sequence_t_free(zsequence, bitvector_t_free_inner);
   bitvector_t_free(zjoin);
   bitvector_t_free(x);
   bitvector_t_free(y);
