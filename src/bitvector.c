@@ -10,7 +10,7 @@ extern void bitvector_t_free(bitvector_t *bv);
 extern void bitvector_t_cleanHighBits(bitvector_t *bv);
 extern void bitvector_t_widen(bitvector_t *bv, uint32_t nBitsToAdd);
 extern uint64_t hexchar_to_digit(char c);
-extern bitvector_t *bitvector_t_fromHexString(char *string, uint32_t length);
+extern bitvector_t *bitvector_t_fromHexString(char *string);
 extern char *bitvector_t_toHexString(bitvector_t *bv);
 extern void bitvector_t_copyUpdate(bitvector_t *dst, bitvector_t *src);
 extern bitvector_t *bitvector_t_copy(bitvector_t *bv);

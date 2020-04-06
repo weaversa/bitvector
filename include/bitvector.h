@@ -90,9 +90,11 @@ inline uint64_t hexchar_to_digit(char c) {
   else return 16;
 }
 
-inline bitvector_t *bitvector_t_fromHexString(char *string, uint32_t length) {
+inline bitvector_t *bitvector_t_fromHexString(char *string) {
   uint32_t i;
 
+  size_t length = strlen(string);
+  
   bitvector_t *bv = bitvector_t_alloc(length*4);
   if(bv == NULL) return NULL;
 

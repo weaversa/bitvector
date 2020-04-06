@@ -4,8 +4,8 @@ int main() {
 
   char *tmp;
   
-  bitvector_t *x = bitvector_t_fromHexString("ABCDABCDABCDABCD0123", 20);
-  bitvector_t *y = bitvector_t_fromHexString("0123", 4);
+  bitvector_t *x = bitvector_t_fromHexString("ABCDABCDABCDABCD0123");
+  bitvector_t *y = bitvector_t_fromHexString("0123");
 
   fprintf(stderr, "x : [%d] = %s\n", x->nBits, tmp=bitvector_t_toHexString(x)); free(tmp);
   fprintf(stderr, "y : [%d] = %s\n", y->nBits, tmp=bitvector_t_toHexString(y)); free(tmp);
