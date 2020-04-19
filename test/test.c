@@ -13,7 +13,7 @@ int main() {
   bitvector_t *z = bitvector_t_concat(x, y);
   fprintf(stderr, "z : [%d] = x # y = %s\n", z->nBits, tmp=bitvector_t_toHexString(z)); free(tmp);
 
-  bitvector_t_widen(z, 121);
+  bitvector_t_widenUpdate(z, 121);
   fprintf(stderr, "z : [%d] = %s\n", z->nBits, tmp=bitvector_t_toHexString(z)); free(tmp);
 
   bitvector_t *z2 = bitvector_t_concat(z, z);

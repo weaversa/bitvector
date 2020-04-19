@@ -114,22 +114,25 @@ let bitvector_t_cleanHighBits_spec (n : Int) = do {
 };
 
 let bitvector_t_fromHexString_spec (n : Int) = do {
-  (string, pstring) <- ptr_to_fresh "string" (llvm_array n (llvm_int 8));
+  string <- crucible_fresh_var "string" (llvm_array n (llvm_int 8));
+  pstring <- alloc_init (llvm_array (eval_int {{ `n + 1 : [32] }}) (llvm_int 8)) (crucible_term {{ string # [0] }});
 
   crucible_precond {{ [ (c >= 'a' /\ c <= 'f') \/
                         (c >= 'A' /\ c <= 'F') \/
 			(c >= '0' /\ c <= '9')
-	              | c <- string ] == ~zero }};
+		      | c <- string ] == ~zero }};
 
-  crucible_execute_func [pstring, crucible_term {{ `n : [32] }}];
+  crucible_execute_func [pstring];
 
+/*
   (pbv, nBits', nLength', nLength_max', List', pList') <-
     bitvector_t (eval_int {{ `(n*4) : [32] }}) "bv";
   
   crucible_return pbv;
 
   bitvector_t_postconditions (eval_int {{ `(n*4) : [32] }}) nBits' nLength' nLength_max';
-  crucible_postcond {{ hexstring_to_bv string == fromList List' }};
+  crucible_postcond {{ hexstring_to_bv (take `{n} string) == fromList List' }};
+  */
 };
 
 let bitvector_t_copyUpdate_spec (n : Int) = do {

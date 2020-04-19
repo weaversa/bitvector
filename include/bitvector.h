@@ -61,11 +61,24 @@ inline void bitvector_t_free(bitvector_t *bv) {
   free(bv);
 }
 
+inline void bitvector_t_copyUpdate(bitvector_t *dst, bitvector_t *src) {
+  if(uint64_t_list_copy(&dst->bits, &src->bits) != C_LIST_NO_ERROR) {
+    fprintf(stderr, "bitvector_t copy failed.\n");
+    return;
+  }
+}
+
+inline bitvector_t *bitvector_t_copy(bitvector_t *bv) {
+  bitvector_t *ret = bitvector_t_alloc(bv->nBits);
+  bitvector_t_copyUpdate(ret, bv);
+  return ret;
+}
+
 inline void bitvector_t_cleanHighBits(bitvector_t *bv) {
   bv->bits.pList[bv->bits.nLength-1] &= (~(uint64_t)0) >> (64 - (bv->nBits&0x3f));
 }
 
-inline void bitvector_t_widen(bitvector_t *bv, uint32_t nBitsToAdd) {
+inline void bitvector_t_widenUpdate(bitvector_t *bv, uint32_t nBitsToAdd) {
   if(nBitsToAdd + bv->nBits < bv->nBits) {
     fprintf(stderr, "Widening a vector with %u bits by %u bits caused an overflow\n", bv->nBits, nBitsToAdd);
     return;
@@ -82,6 +95,17 @@ inline void bitvector_t_widen(bitvector_t *bv, uint32_t nBitsToAdd) {
   memset((void *)(bv->bits.pList+old_length), 0, (bv->bits.nLength - old_length) * sizeof(uint64_t));
 }
 
+inline bitvector_t *bitvector_t_widen(bitvector_t *bv, uint32_t nBitsToAdd) {
+  if(nBitsToAdd + bv->nBits < bv->nBits) {
+    fprintf(stderr, "Widening a vector with %u bits by %u bits caused an overflow\n", bv->nBits, nBitsToAdd);
+    return NULL;
+  }
+
+  bitvector_t *ret = bitvector_t_copy(bv);
+  bitvector_t_widenUpdate(ret, nBitsToAdd);
+  return ret;
+}
+
 inline uint64_t hexchar_to_digit(char c) {
   uint64_t cu = (uint64_t) c;
   if(c >= 'a' && c <= 'f')      return cu - 97 + 10;
@@ -93,7 +117,7 @@ inline uint64_t hexchar_to_digit(char c) {
 inline bitvector_t *bitvector_t_fromHexString(char *string) {
   uint32_t i;
 
-  size_t length = strlen(string);
+  uint32_t length = (uint32_t) strlen(string);
   
   bitvector_t *bv = bitvector_t_alloc(length*4);
   if(bv == NULL) return NULL;
@@ -133,19 +157,6 @@ inline char *bitvector_t_toHexString(bitvector_t *bv) {
   return string;
 }
 
-inline void bitvector_t_copyUpdate(bitvector_t *dst, bitvector_t *src) {
-  if(uint64_t_list_copy(&dst->bits, &src->bits) != C_LIST_NO_ERROR) {
-    fprintf(stderr, "bitvector_t copy failed.\n");
-    return;
-  }
-}
-
-inline bitvector_t *bitvector_t_copy(bitvector_t *bv) {
-  bitvector_t *ret = bitvector_t_alloc(bv->nBits);
-  bitvector_t_copyUpdate(ret, bv);
-  return ret;
-}
-
 inline void bitvector_t_dropUpdate(bitvector_t *bv, uint32_t nBitsToDrop) {
   if(nBitsToDrop > bv->nBits) {
     fprintf(stderr, "Cannot drop %u bits from a bitvector_t with only %u bits.\n", nBitsToDrop, bv->nBits);
@@ -178,7 +189,7 @@ inline void bitvector_t_from_bytesUpdate(bitvector_t *bv, uint8_t *bytes, uint32
   if(bytes == NULL) return;
   
   if(bv->nBits < nBytes*8) {
-    bitvector_t_widen(bv, (nBytes*8) - bv->nBits);
+    bitvector_t_widenUpdate(bv, (nBytes*8) - bv->nBits);
   } else if(bv->nBits > nBytes*8) {
     bitvector_t_dropUpdate(bv, bv->nBits - (nBytes*8));
   }
@@ -230,7 +241,7 @@ inline bitvector_t *bitvector_t_concat(bitvector_t *x, bitvector_t *y) {
 
   bitvector_t *ret = bitvector_t_copy(y);
   bitvector_t_cleanHighBits(ret);
-  bitvector_t_widen(ret, x->nBits);
+  bitvector_t_widenUpdate(ret, x->nBits);
 
   for(i = start; i < start + length; i++) {
     ret->bits.pList[i] |= x->bits.pList[i-start] << (y->nBits&0x3f);
@@ -245,7 +256,7 @@ inline bitvector_t *bitvector_t_concat(bitvector_t *x, bitvector_t *y) {
 inline bitvector_t *sequence_t_join(sequence_t *sequence) {
   if(sequence == NULL) return NULL;
 
-  uint32_t parts = sequence->nLength;
+  uint64_t parts = sequence->nLength;
 
   if(parts == 0) return NULL;
 
@@ -316,7 +327,7 @@ inline void bitvector_t_sliceUpdate(bitvector_t *slice, bitvector_t *bv, uint32_
   if(slice == NULL || bv == NULL) return;
 
   if(slice->nBits < length) {
-    bitvector_t_widen(slice, length - slice->nBits);
+    bitvector_t_widenUpdate(slice, length - slice->nBits);
   } else if(slice->nBits > length) {
     bitvector_t_dropUpdate(slice, slice->nBits - length);
   }
