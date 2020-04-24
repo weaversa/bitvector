@@ -3,11 +3,11 @@ jobs:
   include: 
     - 
       before_install: 
-        - "brew install z3"
-        - "brew install SRI-CSL/sri-csl/yices2"
         - "wget https://saw.galois.com/builds/nightly/saw-0.4.0.99-2020-04-22-OSX-64.tar.gz"
         - "tar -xzf saw-0.4.0.99-2020-04-22-OSX-64.tar.gz"
-        - "ln -s saw-0.4.0.99-2020-04-22-OSX-64/bin/saw ."
+        - "export $PATH=$PATH:saw-0.4.0.99-2020-04-22-OSX-64/bin"
+        - "brew install z3"
+        - "brew install SRI-CSL/sri-csl/yices2"
       compiler: clang
       os: osx
       script: 
