@@ -5,9 +5,9 @@ jobs:
     - compiler: clang
       os: osx
       before_install: 
-        - "wget https://saw.galois.com/builds/nightly/saw-0.4.0.99-2020-04-22-OSX-64.tar.gz"
-        - "tar -xzf saw-0.4.0.99-2020-04-22-OSX-64.tar.gz"
-        - "export PATH=$PATH:saw-0.4.0.99-2020-04-22-OSX-64/bin"
+        - "wget https://saw.galois.com/builds/nightly/saw-0.4.0.99-2020-04-23-OSX-64.tar.gz"
+        - "tar -xzf saw-0.4.0.99-2020-04-23-OSX-64.tar.gz"
+        - "export PATH=$PATH:saw-0.4.0.99-2020-04-23-OSX-64/bin"
         - "brew install z3"
         - "brew install SRI-CSL/sri-csl/yices2"
       script: 
