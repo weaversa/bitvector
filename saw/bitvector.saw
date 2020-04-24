@@ -133,7 +133,7 @@ let bitvector_t_copy_spec (n : Int) = do {
   crucible_postcond {{ r_List == List }};
 };
 
-let bitvector_t_widen_spec (n : Int) (nBitsToAdd : Int) = do {
+let bitvector_t_widenUpdate_spec (n : Int) (nBitsToAdd : Int) = do {
   (pbv, nBits, nLength, nLength_max, List, pList) <- bitvector_t n "bv";
 
   crucible_execute_func [pbv, crucible_term {{ `nBitsToAdd : [32] }}];
@@ -409,7 +409,7 @@ bitvector_t_copyUpdate_result <- crucible_llvm_verify bitvector_bc "bitvector_t_
 
 bitvector_t_copy_result <- crucible_llvm_verify bitvector_bc "bitvector_t_copy" [bitvector_t_copyUpdate_result] true (bitvector_t_copy_spec nBits) z3;
 
-bitvector_t_widen_result <- crucible_llvm_verify bitvector_bc "bitvector_t_widen" [] true (bitvector_t_widen_spec nBits nBitsToAdd) z3;
+bitvector_t_widenUpdate_result <- crucible_llvm_verify bitvector_bc "bitvector_t_widenUpdate" [] true (bitvector_t_widenUpdate_spec nBits nBitsToAdd) z3;
 
 bitvector_t_concat_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_concat" [bitvector_t_widen_result] true (bitvector_t_concat_spec nBits2 nBits) z3);
 
