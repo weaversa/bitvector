@@ -29,7 +29,11 @@ typedef struct bitvector_t {
 create_c_list_headers(sequence_t, bitvector_t)
 
 inline void bitvector_t_zeroize(bitvector_t *bv) {
-  memset((void *)bv->bits.pList, 0, bv->bits.nLength * sizeof(uint64_t));
+  uint32_t i;
+  for(i = 0; i < bv->bits.nLength; i++) {
+    bv->bits.pList[i] = 0;
+  }
+  //memset((void *)bv->bits.pList, 0, bv->bits.nLength * sizeof(uint64_t));
 }
 
 inline bitvector_t *bitvector_t_alloc(uint32_t nBits) {

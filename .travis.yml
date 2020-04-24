@@ -1,0 +1,24 @@
+sudo: required
+language: c
+
+jobs:
+  include:
+    - os: osx
+      compiler: clang
+      before_install:
+        # Install z3
+        - brew install z3
+	# Install Yices 2
+        - brew install SRI-CSL/sri-csl/yices2
+	# Install SAW
+        - wget https://saw.galois.com/builds/nightly/saw-0.4.0.99-2020-04-22-OSX-64.tar.gz
+        - tar -xzf saw-0.4.0.99-2020-04-22-OSX-64.tar.gz
+        - ln -s saw-0.4.0.99-2020-04-22-OSX-64/bin/saw .
+      script:
+        - make
+        - make test/test
+        - test/test
+        - make saw
+     
+#  - os: linux
+#    dist: bionic
