@@ -34,7 +34,8 @@ let {{
 let bitvector_t n name = do {
   let nLength = {{ `(n /^ 64) : [64] }};
 
-  let nLength_max = {{ `(n /^64) : [64] }};
+  nLength_max <- crucible_fresh_var (str_concat name ".nLength_max") (llvm_int 64);
+  crucible_precond {{ nLength_max >= nLength }};
 
   (List, pList) <- ptr_to_fresh (str_concat name ".bits->pList") (llvm_array (eval_int {{ `(n /^ 64) : [32] }}) (llvm_int 64));
 
@@ -112,14 +113,12 @@ let bitvector_t_fromHexString_spec (n : Int) = do {
 
   crucible_execute_func [pstring];
 
-/*
-  (pbv, nBits', nLength', nLength_max', List', pList') <-
-    bitvector_t (eval_int {{ `(n*4) : [32] }}) "bv";
+  pbv <- crucible_alloc (llvm_struct "struct.bitvector_t");
+  (nBits', nLength', nLength_max', List', pList') <- bitvector_t' (eval_int {{ `(n*4) : [32] }}) "bv" pbv;
   
-  crucible_return pbv;
-
   crucible_postcond {{ hexstring_to_bv (take `{n} string) == fromList List' }};
-  */
+
+  crucible_return pbv;
 };
 
 let bitvector_t_copyUpdate_spec (n : Int) = do {
@@ -144,7 +143,8 @@ let bitvector_t_copy_spec (n : Int) = do {
   (nBits', nLength', nLength_max', List', pList') <- bitvector_t' n "bv'" pbv;
   crucible_postcond {{ List == List' }};
 
-  (pret, r_nBits, r_nLength, r_nLength_max, r_List, r_pList) <- bitvector_t n "ret";
+  pret <- crucible_alloc (llvm_struct "struct.bitvector_t");
+  (r_nBits, r_nLength, r_nLength_max, r_List, r_pList) <- bitvector_t' n "ret" pret;
   crucible_return pret;
   crucible_postcond {{ r_List == List }};
 };
@@ -168,7 +168,8 @@ let bitvector_t_concat_spec (nx : Int) (ny : Int) = do {
 
   let n' = eval_int {{ `(nx + ny) : [32] }};
 
-  (pbv, nBits', nLength', nLength_max', List', pList') <- bitvector_t n' "bv'";
+  pbv <- crucible_alloc (llvm_struct "struct.bitvector_t");
+  (nBits', nLength', nLength_max', List', pList') <- bitvector_t' n' "bv'" pbv;
   crucible_return pbv;
 
   crucible_postcond
@@ -188,7 +189,8 @@ let bitvector_t_negate_spec (n : Int) = do {
   (pbv, nBits, nLength, nLength_max, List, pList) <- bitvector_t n "bv";
   crucible_execute_func [pbv];
 
-  (pbv', nBits', nLength', nLength_max', List', pList') <- bitvector_t n "bv'";
+  pbv' <- crucible_alloc (llvm_struct "struct.bitvector_t");
+  (nBits', nLength', nLength_max', List', pList') <- bitvector_t' n "bv'" pbv';
   crucible_return pbv';
 
   crucible_postcond {{ (fromList`{b=n} List) == ~(fromList`{b=n} List') }};
@@ -211,10 +213,12 @@ let bitvector_t_drop_spec (n : Int) (nBitsToDrop : Int) = do {
 
   let n' = eval_int {{ `(n - nBitsToDrop) : [32] }};
 
-  (pbv', nBits', nLength', nLength_max', List', pList') <- bitvector_t n' "bv'";
-  crucible_return pbv';
+  pbv' <- crucible_alloc (llvm_struct "struct.bitvector_t");
+  (nBits', nLength', nLength_max', List', pList') <- bitvector_t' n' "bv'" pbv';
 
-  crucible_postcond {{ drop`{nBitsToDrop} (fromList`{b=n} List) == (fromList`{b=n'} List') }};
+crucible_postcond {{ drop`{nBitsToDrop} (fromList`{b=n} List) == (fromList`{b=n'} List') }};
+
+  crucible_return pbv';
 };
 
 let bitvector_t_getBit_spec (n : Int) = do {
@@ -280,11 +284,12 @@ let bitvector_t_slice_spec (n : Int) (start : Int) (length : Int) = do {
 
   crucible_postcond {{ List == List' }};
 
-  (pslice, s_nBits, s_nLength, s_nLength_max, s_List, s_pList) <- bitvector_t length "slice'";
-
-  crucible_return pslice;
+  pslice <- crucible_alloc (llvm_struct "struct.bitvector_t");
+  (s_nBits, s_nLength, s_nLength_max, s_List, s_pList) <- bitvector_t' length "slice'" pslice;
 
   crucible_postcond {{ fromList s_List == (fromList`{b=n} List)!!([start+length, start+length-1 .. start]:[_][32]) }};
+
+  crucible_return pslice;
 };
 
 let bitvector_t_xorUpdate_spec (n : Int) = do {
@@ -313,7 +318,8 @@ let bitvector_t_xor_spec (n : Int) = do {
 
   crucible_postcond {{ y_List' == y_List }};
 
-  (presult, r_nBits, r_nLength, r_nLength_max, r_List, r_pList) <- bitvector_t n "r";
+  presult <- crucible_alloc (llvm_struct "struct.bitvector_t");
+  (r_nBits, r_nLength, r_nLength_max, r_List, r_pList) <- bitvector_t' n "r" presult;
 
   crucible_return presult;
 
@@ -346,7 +352,8 @@ let bitvector_t_or_spec (n : Int) = do {
 
   crucible_postcond {{ y_List' == y_List }};
 
-  (presult, r_nBits, r_nLength, r_nLength_max, r_List, r_pList) <- bitvector_t n "r";
+  presult <- crucible_alloc (llvm_struct "struct.bitvector_t");
+  (r_nBits, r_nLength, r_nLength_max, r_List, r_pList) <- bitvector_t' n "r" presult;
 
   crucible_return presult;
 
@@ -379,7 +386,8 @@ let bitvector_t_and_spec (n : Int) = do {
 
   crucible_postcond {{ y_List' == y_List }};
 
-  (presult, r_nBits, r_nLength, r_nLength_max, r_List, r_pList) <- bitvector_t n "r";
+  presult <- crucible_alloc (llvm_struct "struct.bitvector_t");
+  (r_nBits, r_nLength, r_nLength_max, r_List, r_pList) <- bitvector_t' n "r" presult;
 
   crucible_return presult;
 
