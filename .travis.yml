@@ -23,7 +23,7 @@ jobs:
         - saw --version
         - "wget https://github.com/Z3Prover/z3/archive/z3-4.8.7.tar.gz"
         - "tar -xvzf z3-4.8.7.tar.gz"
-	- "(cd z3-4.8.7 && make && sudo make install)"
+        - "(cd z3-4.8.7 && make && sudo make install)"
         - z3 --version
         - "sudo add-apt-repository -y ppa:sri-csl/formal-methods"
         - "sudo apt-get update"
