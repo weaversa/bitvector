@@ -7,9 +7,7 @@ jobs:
         - "tar -xzf saw-0.4.0.99-2020-04-24-OSX-64.tar.gz"
         - "export PATH=$PATH:saw-0.4.0.99-2020-04-24-OSX-64/bin"
         - saw --version
-        - "wget https://github.com/Z3Prover/z3/releases/download/z3-4.8.7/z3-4.8.7-x64-osx-10.14.6.zip"
-        - "unzip z3-4.8.7-x64-osx-10.14.6.zip"
-        - "export PATH=$PATH:z3-4.8.7-x64-osx-10.14.6/bin"
+        - "brew install z3"
         - z3 --version
         - "brew install SRI-CSL/sri-csl/yices2"
         - yices-smt2 --version
