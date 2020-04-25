@@ -6,7 +6,9 @@ jobs:
         - "wget https://saw.galois.com/builds/nightly/saw-0.4.0.99-2020-04-24-OSX-64.tar.gz"
         - "tar -xzf saw-0.4.0.99-2020-04-24-OSX-64.tar.gz"
         - "export PATH=$PATH:saw-0.4.0.99-2020-04-24-OSX-64/bin"
-        - "brew install z3"
+        - "wget https://github.com/Z3Prover/z3/releases/download/z3-4.8.7/z3-4.8.7-x64-osx-10.14.6.zip"
+	- "unzip z3-4.8.7-x64-osx-10.14.6.zip"
+	- "export PATH=$PATH:z3-4.8.7-x64-osx-10.14.6/bin"
         - "brew install SRI-CSL/sri-csl/yices2"
       compiler: clang
       os: osx
@@ -15,7 +17,9 @@ jobs:
         - "wget https://saw.galois.com/builds/nightly/saw-0.4.0.99-2020-04-24-Ubuntu14.04-64.tar.gz"
         - "tar -xzf saw-0.4.0.99-2020-04-24-Ubuntu14.04-64.tar.gz"
         - "export PATH=$PATH:saw-0.4.0.99-2020-04-24-Ubuntu14.04-64/bin"
-        - "sudo apt-get install -y z3"
+        - "wget https://github.com/Z3Prover/z3/releases/download/z3-4.8.7/z3-4.8.7-x64-ubuntu-16.04.zip"
+	- "unzip z3-4.8.7-x64-ubuntu-16.04.zip"
+	- "export PATH=$PATH:z3-4.8.7-x64-ubuntu-16.04/bin"
         - "sudo add-apt-repository -y ppa:sri-csl/formal-methods"
         - "sudo apt-get update"
         - "sudo apt-get install -y yices2"
