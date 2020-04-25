@@ -17,11 +17,12 @@ jobs:
       before_install: 
         - "wget https://saw.galois.com/builds/nightly/saw-0.4.0.99-2020-04-24-Ubuntu14.04-64.tar.gz"
         - "tar -xzf saw-0.4.0.99-2020-04-24-Ubuntu14.04-64.tar.gz"
-        - "export PATH=$PATH:saw-0.4.0.99-2020-04-24-Ubuntu14.04-64/bin"
+        - "export PATH=saw-0.4.0.99-2020-04-24-Ubuntu14.04-64/bin:$PATH"
         - saw --version
+        - "sudo apt-get install -y z3"
         - "wget https://github.com/Z3Prover/z3/releases/download/z3-4.8.7/z3-4.8.7-x64-ubuntu-16.04.zip"
         - "unzip z3-4.8.7-x64-ubuntu-16.04.zip"
-        - "export PATH=$PATH:z3-4.8.7-x64-ubuntu-16.04/bin"
+        - "export PATH=z3-4.8.7-x64-ubuntu-16.04/bin:$PATH"
         - z3 --version
         - "sudo add-apt-repository -y ppa:sri-csl/formal-methods"
         - "sudo apt-get update"
