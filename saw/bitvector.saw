@@ -31,9 +31,32 @@ let {{
 
 }};
 
+let bitvector_t n name = do {
+  let nLength = {{ `(n /^ 64) : [64] }};
+
+  let nLength_max = {{ `(n /^64) : [64] }};
+
+  (List, pList) <- ptr_to_fresh (str_concat name ".bits->pList") (llvm_array (eval_int {{ `(n /^ 64) : [32] }}) (llvm_int 64));
+
+  let nBits = {{ `n : [32] }};
+
+  pbv <- crucible_alloc (llvm_struct "struct.bitvector_t");
+
+  crucible_points_to pbv (crucible_struct [crucible_term nBits,
+    crucible_struct [
+      crucible_term nLength,
+      crucible_term nLength_max,
+      pList]]);
+
+  return(pbv, nBits, nLength, nLength_max, List, pList);
+};
+
 let bitvector_t' n name pbv = do {
   let nLength = {{ `(n /^ 64) : [64] }};
-  let nLength_max = {{ `(n /^64) : [64] }};
+
+  nLength_max <- crucible_fresh_var (str_concat name ".nLength_max") (llvm_int 64);
+  crucible_postcond {{ nLength_max >= nLength }};
+
   (List, pList) <- ptr_to_fresh (str_concat name ".bits->pList") (llvm_array (eval_int {{ `(n /^ 64) : [32] }}) (llvm_int 64));
 
   let nBits = {{ `n : [32] }};
@@ -45,14 +68,6 @@ let bitvector_t' n name pbv = do {
       pList]]);
 
   return(nBits, nLength, nLength_max, List, pList);
-};
-
-let bitvector_t n name = do {
-  pbv <- crucible_alloc (llvm_struct "struct.bitvector_t");  
-
-  (nBits, nLength, nLength_max, List, pList) <- bitvector_t' n name pbv;
-
-  return(pbv, nBits, nLength, nLength_max, List, pList);
 };
 
 let bitvector_t_zeroize_spec (n : Int) = do {
@@ -68,11 +83,12 @@ let bitvector_t_zeroize_spec (n : Int) = do {
 let bitvector_t_alloc_spec (n : Int) = do {
   crucible_execute_func [crucible_term {{ `n : [32] }}];
 
-  (pbv, nBits', nLength', nLength_max', List', pList') <- bitvector_t n "bv";
+  pbv <- crucible_alloc (llvm_struct "struct.bitvector_t");
+  (nBits', nLength', nLength_max', List', pList') <- bitvector_t' n "bv'" pbv;
   
-  crucible_return pbv;
-
   crucible_postcond {{ List' == (zero : [n /^ 64][64]) }};
+
+  crucible_return pbv;
 };
 
 let bitvector_t_cleanHighBits_spec (n : Int) = do {
@@ -186,7 +202,7 @@ let bitvector_t_dropUpdate_spec (n : Int) (nBitsToDrop : Int) = do {
 
   (nBits', nLength', nLength_max', List', pList') <- bitvector_t' n' "bv'" pbv;
 
-  crucible_postcond {{ drop (fromList`{b=n} List) == (fromList`{b=n'} List') }};
+  crucible_postcond {{ drop`{nBitsToDrop} (fromList`{b=n} List) == (fromList`{b=n'} List') }};
 };
 
 let bitvector_t_drop_spec (n : Int) (nBitsToDrop : Int) = do {
@@ -198,7 +214,7 @@ let bitvector_t_drop_spec (n : Int) (nBitsToDrop : Int) = do {
   (pbv', nBits', nLength', nLength_max', List', pList') <- bitvector_t n' "bv'";
   crucible_return pbv';
 
-  crucible_postcond {{ drop (fromList`{b=n} List) == (fromList`{b=n'} List') }};
+  crucible_postcond {{ drop`{nBitsToDrop} (fromList`{b=n} List) == (fromList`{b=n'} List') }};
 };
 
 let bitvector_t_getBit_spec (n : Int) = do {

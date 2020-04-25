@@ -22,11 +22,11 @@ int main() {
 
   bitvector_t *t = bitvector_t_drop(z2, 121);
 
-  fprintf(stderr, "t : [%d] = drop`{back=121} z2 = %s\n", t->nBits, tmp=bitvector_t_toHexString(t)); free(tmp);
+  fprintf(stderr, "t : [%d] = drop`{121} z2 = %s\n", t->nBits, tmp=bitvector_t_toHexString(t)); free(tmp);
 
   bitvector_t_dropUpdate(z2, 121);
 
-  fprintf(stderr, "z2 : [%d] = drop`{back=121} z2 = %s\n", z2->nBits, tmp=bitvector_t_toHexString(z2)); free(tmp);
+  fprintf(stderr, "z2 : [%d] = drop`{121} z2 = %s\n", z2->nBits, tmp=bitvector_t_toHexString(z2)); free(tmp);
 
   bitvector_t *xor = bitvector_t_xor(t, t);
 
