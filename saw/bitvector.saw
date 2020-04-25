@@ -257,7 +257,7 @@ let bitvector_t_popcount_spec (n : Int) = do {
 
   (nBits', nLength', nLength_max', List', pList') <- bitvector_t' n "bv'" pbv;
 
-  crucible_postcond {{ List == List' }};
+  crucible_postcond {{ fromList`{b=n} List == fromList`{b=n} List' }};
 
   crucible_return (crucible_term {{ (popcount (fromList`{b=n} List)) : [32] }});
 };
