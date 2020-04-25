@@ -1,33 +1,35 @@
-language: c
-
+--- 
 jobs: 
   include: 
-    - compiler: clang
-      os: osx
+    - 
       before_install: 
         - "wget https://saw.galois.com/builds/nightly/saw-0.4.0.99-2020-04-24-OSX-64.tar.gz"
         - "tar -xzf saw-0.4.0.99-2020-04-24-OSX-64.tar.gz"
         - "export PATH=$PATH:saw-0.4.0.99-2020-04-24-OSX-64/bin"
         - "brew install z3"
         - "brew install SRI-CSL/sri-csl/yices2"
+      compiler: clang
+      os: osx
       script: 
         - make
         - "make test/test"
         - test/test
         - "make saw"
-    - compiler: clang
-      os: linux
-      dist: bionic
-      before_install:
+    - 
+      before_install: 
         - "wget https://saw.galois.com/builds/nightly/saw-0.4.0.99-2020-04-24-Ubuntu14.04-64.tar.gz"
         - "tar -xzf saw-0.4.0.99-2020-04-24-Ubuntu14.04-64.tar.gz"
         - "export PATH=$PATH:saw-0.4.0.99-2020-04-24-Ubuntu14.04-64/bin"
-        - apt-get install z3
-        - add-apt-repository ppa:sri-csl/formal-methods
-        - apt-get update
-        - apt-get install yices2
-     script: 
+        - "apt-get install z3"
+        - "add-apt-repository ppa:sri-csl/formal-methods"
+        - "apt-get update"
+        - "apt-get install yices2"
+      compiler: clang
+      dist: bionic
+      os: linux
+      script: 
         - make
         - "make test/test"
         - test/test
         - "make saw"
+language: c
