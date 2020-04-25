@@ -1,4 +1,4 @@
-EXTRAS = Makefile LICENSE README.md saw/bitvector.saw test/test.c
+EXTRAS = Makefile LICENSE README.md .travis.yml saw/bitvector.saw test/test.c
 
 HEADERS = include/bitvector.h
 
