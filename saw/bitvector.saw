@@ -10,10 +10,12 @@ let ptr_to_fresh n ty = do {
   return (x, p);
 };
 
-let {{
-  type uint64_t_list a = ([64], [64], [a][64], [64])
-  type bitvector_t nBits = ([32], uint64_t_list(nBits/^64))
+let uint64_t name = crucible_fresh_var name (llvm_int 64);
+let uint32_t name = crucible_fresh_var name (llvm_int 32);
+let uint16_t name = crucible_fresh_var name (llvm_int 16);
+let uint8_t name = crucible_fresh_var name (llvm_int 8);
 
+let {{
   hexstring_to_bv : {a} (fin a) => [a][8] -> [a*4]
   hexstring_to_bv s = join [ drop (if (c >= 'a' /\ c <= 'f') then (c - 'a') + 10
                                     | (c >= 'A' /\ c <= 'F') then (c - 'A') + 10
@@ -34,7 +36,7 @@ let {{
 let bitvector_t n name = do {
   let nLength = {{ `(n /^ 64) : [64] }};
 
-  nLength_max <- crucible_fresh_var (str_concat name ".nLength_max") (llvm_int 64);
+  nLength_max <- uint64_t (str_concat name ".nLength_max");
   crucible_precond {{ nLength_max >= nLength }};
 
   (List, pList) <- ptr_to_fresh (str_concat name ".bits->pList") (llvm_array (eval_int {{ `(n /^ 64) : [32] }}) (llvm_int 64));
@@ -55,7 +57,7 @@ let bitvector_t n name = do {
 let bitvector_t' n name pbv = do {
   let nLength = {{ `(n /^ 64) : [64] }};
 
-  nLength_max <- crucible_fresh_var (str_concat name ".nLength_max") (llvm_int 64);
+  nLength_max <- uint64_t (str_concat name ".nLength_max");
   crucible_postcond {{ nLength_max >= nLength }};
 
   (List, pList) <- ptr_to_fresh (str_concat name ".bits->pList") (llvm_array (eval_int {{ `(n /^ 64) : [32] }}) (llvm_int 64));
@@ -223,7 +225,7 @@ crucible_postcond {{ drop`{nBitsToDrop} (fromList`{b=n} List) == (fromList`{b=n'
 
 let bitvector_t_getBit_spec (n : Int) = do {
   (pbv, nBits, nLength, nLength_max, List, pList) <- bitvector_t n "bv";
-  index <- crucible_fresh_var "index" (llvm_int 32);
+  index <- uint32_t "index";
   crucible_precond {{ index < `n }};
 
   crucible_execute_func [pbv, crucible_term {{ index }}];
@@ -235,10 +237,10 @@ let bitvector_t_getBit_spec (n : Int) = do {
 
 let bitvector_t_setBit_spec (n : Int) = do {
   (pbv, nBits, nLength, nLength_max, List, pList) <- bitvector_t n "bv";
-  index <- crucible_fresh_var "index" (llvm_int 32);
+  index <- uint32_t "index";
   crucible_precond {{ index < `n }};
 
-  value <- crucible_fresh_var "value" (llvm_int 8);
+  value <- uint8_t "value";
 
   crucible_execute_func [pbv, crucible_term {{ index }}, crucible_term {{ value }}];
 
