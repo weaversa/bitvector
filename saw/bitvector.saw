@@ -289,6 +289,53 @@ bitvector_t_toHexString_result <-
   bv_verify "bitvector_t_toHexString" [] (bitvector_t_toHexString_spec nHexChars);
 
 
+//void bitvector_t_dropUpdate(bitvector_t *bv, uint32_t nBitsToDrop)
+let bitvector_t_dropUpdate_spec (n : Int) (nBitsToDrop : Int) = do {
+  bv <- bitvector_t "bv" WRITE n;
+
+  execute [bv.p, from_cryptol {{ `nBitsToDrop : [32] }}];
+
+  let n' = eval_int {{ `(n - nBitsToDrop) : [32] }};
+
+  bv' <- bitvector_t' "bv'" n' bv.p;
+
+  let (List, List') = ((bv.List).c, (bv'.List).c);
+  postcond {{ drop`{nBitsToDrop} (from_list`{b=n} List) == (from_list`{b=n'} List') }};
+};
+
+bitvector_t_dropUpdate_result <-
+  bv_verify "bitvector_t_dropUpdate" [] (bitvector_t_dropUpdate_spec nBits nBitsToDrop);
+  
+
+//bitvector_t *bitvector_t_drop(bitvector_t *bv, uint32_t nBitsToDrop) {
+let bitvector_t_drop_spec (n : Int) (nBitsToDrop : Int) = do {
+  bv <- bitvector_t "bv" WRITE n;
+
+  execute [bv.p, from_cryptol {{ `nBitsToDrop : [32] }}];
+
+  //Show that nBits and nLength of the input bv were unchanged
+  bv' <- bitvector_t' "bv'" n bv.p;
+
+  let (nBits, nBits') = (bv.nBits, bv'.nBits);
+  postcond {{ (nBits : [32]) == (nBits' : [32]) }};
+
+  let (nLength, nLength') = (bv.nLength, bv'.nLength);
+  postcond {{ (nLength : [64]) == (nLength' : [64]) }};
+
+  //Show that the result bv is correct
+  let n' = eval_int {{ `(n - nBitsToDrop) : [32] }};
+  
+  pret <- pointer CONST (struct_t "bitvector_t");
+  ret <- bitvector_t' "ret" n' pret;
+
+  let (List, r_List) = ((bv.List).c, (ret.List).c);
+  postcond {{ drop`{nBitsToDrop} (from_list`{b=n} List) == (from_list`{b=n'} r_List) }};
+
+  crucible_return pret;
+};
+
+bitvector_t_drop_result <-
+  bv_verify "bitvector_t_drop" [] (bitvector_t_drop_spec nBits nBitsToDrop);
 
 
 let bitvector_t_concat_spec (nx : Int) (ny : Int) = do {
@@ -324,31 +371,6 @@ let bitvector_t_negate_spec (n : Int) = do {
   crucible_return pbv';
 
   crucible_postcond {{ (from_list`{b=n} List) == ~(from_list`{b=n} List') }};
-};
-
-let bitvector_t_dropUpdate_spec (n : Int) (nBitsToDrop : Int) = do {
-  (pbv, nBits, nLength, nLength_max, List, pList) <- bitvector_t n "bv";
-  crucible_execute_func [pbv, crucible_term {{ `nBitsToDrop : [32] }}];
-
-  let n' = eval_int {{ `(n - nBitsToDrop) : [32] }};
-
-  (nBits', nLength', nLength_max', List', pList') <- bitvector_t' n' "bv'" pbv;
-
-  crucible_postcond {{ drop`{nBitsToDrop} (from_list`{b=n} List) == (from_list`{b=n'} List') }};
-};
-
-let bitvector_t_drop_spec (n : Int) (nBitsToDrop : Int) = do {
-  (pbv, nBits, nLength, nLength_max, List, pList) <- bitvector_t n "bv";
-  crucible_execute_func [pbv, crucible_term {{ `nBitsToDrop : [32] }}];
-
-  let n' = eval_int {{ `(n - nBitsToDrop) : [32] }};
-
-  pbv' <- crucible_alloc (struct "bitvector_t");
-  (nBits', nLength', nLength_max', List', pList') <- bitvector_t' n' "bv'" pbv';
-
-crucible_postcond {{ drop`{nBitsToDrop} (from_list`{b=n} List) == (from_list`{b=n'} List') }};
-
-  crucible_return pbv';
 };
 
 let bitvector_t_getBit_spec (n : Int) = do {
