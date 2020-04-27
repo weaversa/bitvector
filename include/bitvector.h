@@ -79,7 +79,9 @@ inline bitvector_t *bitvector_t_copy(bitvector_t *bv) {
 }
 
 inline void bitvector_t_cleanHighBits(bitvector_t *bv) {
-  bv->bits.pList[bv->bits.nLength-1] &= (~(uint64_t)0) >> (64 - (bv->nBits&0x3f));
+  if((bv->nBits&0x3f) != 0) {
+    bv->bits.pList[bv->bits.nLength-1] &= (~(uint64_t)0) >> (64 - (bv->nBits&0x3f));
+  }
 }
 
 inline void bitvector_t_widenUpdate(bitvector_t *bv, uint32_t nBitsToAdd) {
@@ -154,10 +156,16 @@ inline char *bitvector_t_toHexString(bitvector_t *bv) {
 
   for(i = 0; i < length; i++) {
     char c[2];
-    snprintf(c, 2, "%" PRIx64, (bv->bits.pList[i>>4] >> ((i&0xf)*4)) & 0xf);
+    //snprintf(c, 2, "%" PRIx64, (bv->bits.pList[i>>4] >> ((i&0xf)*4)) & 0xf);
+    c[0] = (bv->bits.pList[i>>4] >> ((i&0xf)*4)) & 0xf;
+    if(c[0] >= 10) {
+      c[0] += 'a' - 10;
+    } else {
+      c[0] += '0';
+    }
     string[length-i - 1] = c[0];
   }
-
+  
   return string;
 }
 

@@ -18,16 +18,6 @@ let uint16_t = llvm_int 16;
 let uint8_t = llvm_int 8;
 let struct_t struct_name = llvm_type (str_concat "%struct." struct_name);
 
-//Here the pointer points to a sting of size `size+1` that is NULL
-//terminated. The Cryptol value does not have the NULL at the end of
-//the string.
-let string_t string_name rw size = do {
-  string <- crucible_fresh_var string_name (llvm_array size uint8_t);
-  pstring <- pointer rw (llvm_array (eval_int {{ `size + 1 : [64] }}) uint8_t);
-  points_to pstring (from_cryptol {{ string # [0] }});
-  return {p=pstring, s=from_cryptol string, c=string};
-};
-
 let variable name type = do {
   cryptol_var <- crucible_fresh_var name type;
   return {s=from_cryptol cryptol_var, c=cryptol_var};
@@ -46,17 +36,40 @@ let list name rw size basetype = do {
   return {p=value.p, s=value.s, c=value.c};
 };
 
-//For example:
-//x <- array "x" CONST 10 uint32_t;
+//Here the pointer points to a sting of size `size+1` that is NULL
+//terminated. The Cryptol value does not have the NULL at the end of
+//the string.
+let string_t string_name rw size = do {
+  string <- crucible_fresh_var string_name (llvm_array size uint8_t);
+  pstring <- pointer rw (llvm_array (eval_int {{ `size + 1 : [64] }}) uint8_t);
+  points_to pstring (from_cryptol {{ string # [0] }});
+  return {p=pstring, s=from_cryptol string, c=string};
+};
+
+let string_t' string_name size = do {
+  string <- list "string" CONST (eval_int {{ `(size+1) : [64] }}) uint8_t;
+  let s = string.c;
+  postcond {{ s@(`size : [64]) == 0 }};
+  return {p=string.p, s=from_cryptol string.c, c=string.c};
+};
+
 
 let {{
   hexstring_to_bv : {a} (fin a) => [a][8] -> [a*4]
   hexstring_to_bv s =
     join [ drop (if (c >= 'a' /\ c <= 'f') then (c - 'a') + 10
                   | (c >= 'A' /\ c <= 'F') then (c - 'A') + 10
-                  | (c >= '0' /\ c <= '9') then c - '0'
+                  | (c >= '0' /\ c <= '9') then (c - '0')
                  else 0) : [4]
          | c <- s ]
+
+  bv_to_hexstring : {a} (fin a) => [a*4] -> [a][8]
+  bv_to_hexstring bv = [ (if d >= 10
+                          then (0#d) + 'a' - 10
+                          else (0#d) + '0')
+                       | d <- groupBy`{4} bv ]
+
+  hexstring_inverts x = hexstring_to_bv (bv_to_hexstring x) == x
 
   from_list : {a, b} (fin a, fin b, a*64 >= b) => [a][64] -> [b]
   from_list List = drop (join (reverse List))
@@ -140,11 +153,12 @@ let bitvector_t_alloc_spec (nBits : Int) = do {
   let List' = (bv'.List).c;
   postcond {{ List' == (zero : [nBits /^ 64][64]) }};
 
-  returns bv'.p;
+  returns pbv;
 };
 
 bitvector_t_alloc_result <-
   bv_verify "bitvector_t_alloc" [bitvector_t_zeroize_result] (bitvector_t_alloc_spec nBits);
+
 
 //void bitvector_t_copyUpdate(bitvector_t *dst, bitvector_t *src)
 let bitvector_t_copyUpdate_spec (n : Int) = do {
@@ -161,25 +175,23 @@ let bitvector_t_copyUpdate_spec (n : Int) = do {
 bitvector_t_copyUpdate_result <-
   bv_verify "bitvector_t_copyUpdate" [] (bitvector_t_copyUpdate_spec nBits);
 
+
 //bitvector_t *bitvector_t_copy(bitvector_t *bv) {
 let bitvector_t_copy_spec (n : Int) = do {
   bv <- bitvector_t "bv" CONST n;
 
   execute [bv.p];
 
-  bv' <- bitvector_t' "bv'" n bv.p;
-  let (List, List') = ((bv.List).c, (bv'.List).c);
-  postcond {{ List == List' }};
-
   pret <- pointer CONST (struct_t "bitvector_t");
   ret <- bitvector_t' "ret" n pret;
-  let r_List = (ret.List).c;
-  postcond {{ r_List == List }};
+  let (List, r_List) = ((bv.List).c, (ret.List).c);
+  postcond {{ List == r_List }};
   returns pret;
 };
 
 bitvector_t_copy_result <-
   bv_verify "bitvector_t_copy" [bitvector_t_copyUpdate_result] (bitvector_t_copy_spec nBits);
+
 
 //void bitvector_t_cleanHighBits(bitvector_t *bv)
 let bitvector_t_cleanHighBits_spec (n : Int) = do {
@@ -194,7 +206,45 @@ let bitvector_t_cleanHighBits_spec (n : Int) = do {
 };
 
 bitvector_t_cleanHighBits_result <-
-  bv_verify "bitvector_t_cleanHighBits" [] (bitvector_t_cleanHighBits_spec nBits);
+  bv_verify "bitvector_t_cleanHighBits" [] (bitvector_t_cleanHighBits_spec 64);
+
+
+//void bitvector_t_widenUpdate(bitvector_t *bv, uint32_t nBitsToAdd)
+let bitvector_t_widenUpdate_spec (n : Int) (nBitsToAdd : Int) = do {
+  bv <- bitvector_t "bv" WRITE n;
+
+  execute [bv.p, from_cryptol {{ `nBitsToAdd : [32] }}];
+
+  let n' = eval_int {{ `(n + nBitsToAdd) : [32] }};
+
+  bv' <- bitvector_t' "bv'" n' bv.p;
+
+  let (List, List') = ((bv.List).c, (bv'.List).c);
+  postcond {{ (0 # (from_list`{b=n} List)) == (from_list`{b=n'} List') }};
+};
+
+bitvector_t_widenUpdate_result <-
+  bv_verify "bitvector_t_widenUpdate" [] (bitvector_t_widenUpdate_spec nBits nBitsToAdd);
+
+//bitvector_t *bitvector_t_widen(bitvector_t *bv, uint32_t nBitsToAdd)
+let bitvector_t_widen_spec (n : Int) (nBitsToAdd : Int) = do {
+  bv <- bitvector_t "bv" CONST n;
+
+  execute [bv.p, from_cryptol {{ `nBitsToAdd : [32] }}];
+
+  let n' = eval_int {{ `(n + nBitsToAdd) : [32] }};
+
+  pret <- pointer CONST (struct_t "bitvector_t");
+  ret <- bitvector_t' "ret" n' pret;
+
+  let (List, r_List) = ((bv.List).c, (ret.List).c);
+  postcond {{ (0 # (from_list`{b=n} List)) == (from_list`{b=n'} r_List) }};
+  returns pret;
+};
+
+bitvector_t_widen_result <-
+  bv_verify "bitvector_t_widen" [bitvector_t_widenUpdate_result] (bitvector_t_widen_spec nBits nBitsToAdd);
+
 
 //bitvector_t *bitvector_t_fromHexString(char *string)
 let bitvector_t_fromHexString_spec (n : Int) = do {
@@ -202,9 +252,9 @@ let bitvector_t_fromHexString_spec (n : Int) = do {
 
   let s = string.c;
   precond {{ [ (c >= 'a' /\ c <= 'f') \/
-                        (c >= 'A' /\ c <= 'F') \/
-			(c >= '0' /\ c <= '9')
-		      | c <- s ] == ~zero }};
+               (c >= 'A' /\ c <= 'F') \/
+               (c >= '0' /\ c <= '9')
+	     | c <- s ] == ~zero }};
 
   execute [string.p];
 
@@ -212,7 +262,7 @@ let bitvector_t_fromHexString_spec (n : Int) = do {
   bv' <- bitvector_t' "bv'" (eval_int {{ `(n*4) : [64] }}) pbv;
 
   let List' = (bv'.List).c;
-  postcond {{ hexstring_to_bv (take `{n} s) == from_list List' }};
+  postcond {{ hexstring_to_bv s == from_list List' }};
 
   returns pbv;
 };
@@ -221,17 +271,25 @@ bitvector_t_fromHexString_result <-
   bv_verify "bitvector_t_fromHexString" [] (bitvector_t_fromHexString_spec nHexChars);
 
 
-let bitvector_t_widenUpdate_spec (n : Int) (nBitsToAdd : Int) = do {
-  (pbv, nBits, nLength, nLength_max, List, pList) <- bitvector_t n "bv";
+//char *bitvector_t_toHexString(bitvector_t *bv)
+let bitvector_t_toHexString_spec (n : Int) = do {
+  bv <- bitvector_t "bv" WRITE (eval_int {{ `(n*4) : [64] }});
 
-  crucible_execute_func [pbv, crucible_term {{ `nBitsToAdd : [32] }}];
+  execute [bv.p];
 
-  let n' = eval_int {{ `(n + nBitsToAdd) : [32] }};
+  string <- string_t' "string" n;
 
-  (nBits', nLength', nLength_max', List', pList') <- bitvector_t' n' "bv'" pbv;
+  let (s, List) = (string.c, (bv.List).c);
+  postcond {{ bv_to_hexstring`{n} (from_list List) == take s }};
 
-  crucible_postcond {{ (0 # (from_list`{b=n} List)) == (from_list`{b=n'} List') }};
+  returns string.p;
 };
+
+bitvector_t_toHexString_result <-
+  bv_verify "bitvector_t_toHexString" [] (bitvector_t_toHexString_spec nHexChars);
+
+
+
 
 let bitvector_t_concat_spec (nx : Int) (ny : Int) = do {
   (px, x_nBits, x_nLength, x_nLength_max, x_List, x_pList) <- bitvector_t nx "x";
