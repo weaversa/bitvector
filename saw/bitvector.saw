@@ -120,6 +120,7 @@ let nBits2 = 10;
 let nBitsToAdd = 10;
 let nBitsToDrop = 10;
 let nHexChars = 17;
+let nBytes = 23;
 let slicestart = 54;
 let slicelength = 113;
 
@@ -336,6 +337,28 @@ let bitvector_t_drop_spec (n : Int) (nBitsToDrop : Int) = do {
 
 bitvector_t_drop_result <-
   bv_verify "bitvector_t_drop" [] (bitvector_t_drop_spec nBits nBitsToDrop);
+
+
+//void bitvector_t_from_bytes(bitvector_t *bv, uint8_t *bytes, uint32_t nBytes)
+let bitvector_t_from_bytes_spec (n : Int) (nBytes : Int) = do {
+  bytes <- list "bytes" CONST nBytes uint8_t;
+
+  execute [bytes.p, from_cryptol {{ `nBytes : [32] }}];
+
+  let n' = eval_int {{ `(nBytes * 8) : [32] }};
+
+  pbv <- pointer CONST (struct_t "bitvector_t");
+  bv' <- bitvector_t' "bv'" n' pbv;
+
+  let List = (bv'.List).c;
+  let b = bytes.c;
+  postcond {{ from_list`{b=n'} List == join b }};
+
+  returns pbv;
+};
+
+bitvector_t_from_bytes_result <-
+  bv_verify "bitvector_t_from_bytes" [bitvector_t_widenUpdate_result] (bitvector_t_from_bytes_spec nBits nBytes);
 
 
 let bitvector_t_concat_spec (nx : Int) (ny : Int) = do {

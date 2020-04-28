@@ -196,42 +196,24 @@ inline bitvector_t *bitvector_t_drop(bitvector_t *bv, uint32_t nBitsToDrop) {
   return ret;
 }
 
-inline void bitvector_t_from_bytesUpdate(bitvector_t *bv, uint8_t *bytes, uint32_t nBytes) {
-  if(bv == NULL) return;
-  if(bytes == NULL) return;
-  
+inline bitvector_t *bitvector_t_from_bytes(uint8_t *bytes, uint32_t nBytes) {
+  if(bytes == NULL) return NULL;
+  bitvector_t *bv = bitvector_t_alloc(nBytes*8);
+
   if(bv->nBits < nBytes*8) {
     bitvector_t_widenUpdate(bv, (nBytes*8) - bv->nBits);
   } else if(bv->nBits > nBytes*8) {
     bitvector_t_dropUpdate(bv, bv->nBits - (nBytes*8));
   }
 
+  bitvector_t_zeroize(bv);
+  
   uint32_t i;
   for(i = 0; i < nBytes; i++) {
     bv->bits.pList[i>>3] |= ((uint64_t) bytes[nBytes-(i+1)])<<((i&0x7) * 8);
   }
-}
-
-inline bitvector_t *bitvector_t_from_bytes(uint8_t *bytes, uint32_t nBytes) {
-  if(bytes == NULL) return NULL;
-  bitvector_t *bv = bitvector_t_alloc(nBytes*8);
-  bitvector_t_from_bytesUpdate(bv, bytes, nBytes);
+  
   return bv;
-}
-
-inline void bitvector_t_to_bytesUpdate(uint8_t *bytes, bitvector_t *bv) {
-  if(bv == NULL) return;
-  if(bytes == NULL) return;
-  if(bv->nBits % 8 != 0) {
-    fprintf(stderr, "Cannot create a byte array from a bitvector_t with number of bits not a multiple of 8.\n");
-    return;
-  }
-
-  uint32_t nBytes = bv->nBits / 8;
-  uint32_t i;
-  for(i = 0; i < nBytes; i++) {
-    bytes[nBytes-(i+1)] = (uint8_t) (bv->bits.pList[i>>3]>>((i&0x7) * 8));
-  }
 }
 
 inline uint8_t *bitvector_t_to_bytes(bitvector_t *bv) {
@@ -242,7 +224,13 @@ inline uint8_t *bitvector_t_to_bytes(bitvector_t *bv) {
   }
   
   uint8_t *bytes = (uint8_t *)malloc((bv->nBits / 8) * sizeof(uint8_t));
-  bitvector_t_to_bytesUpdate(bytes, bv);
+
+  uint32_t nBytes = bv->nBits / 8;
+  uint32_t i;
+  for(i = 0; i < nBytes; i++) {
+    bytes[nBytes-(i+1)] = (uint8_t) (bv->bits.pList[i>>3]>>((i&0x7) * 8));
+  }
+  
   return bytes;
 }
 
