@@ -116,7 +116,7 @@ let bitvector_t' name n pbv = do {
 };
 
 let nBits = 200;
-let nBits2 = 10;
+let nBits2 = 137;
 let nBitsToAdd = 10;
 let nBitsToDrop = 10;
 let nHexChars = 17;
@@ -361,20 +361,46 @@ bitvector_t_from_bytes_result <-
   bv_verify "bitvector_t_from_bytes" [bitvector_t_widenUpdate_result] (bitvector_t_from_bytes_spec nBits nBytes);
 
 
+//uint8_t *bitvector_t_to_bytes(bitvector_t *bv)
+let bitvector_t_to_bytes_spec (nBytes : Int) = do {
+  bv <- bitvector_t "bv" CONST (eval_int {{ `nBytes * 8 : [32] }});
+  
+  execute [bv.p];
+
+  bytes <- list "bytes" CONST nBytes uint8_t;
+
+  let List = (bv.List).c;
+  let b = bytes.c;
+  postcond {{ from_list`{b=nBytes*8} List == join b }};
+
+  returns bytes.p;
+};
+
+bitvector_t_to_bytes_result <-
+  bv_verify "bitvector_t_to_bytes" [] (bitvector_t_to_bytes_spec nBytes);
+
+
+//bitvector_t *bitvector_t_concat(bitvector_t *x, bitvector_t *y)
 let bitvector_t_concat_spec (nx : Int) (ny : Int) = do {
-  (px, x_nBits, x_nLength, x_nLength_max, x_List, x_pList) <- bitvector_t nx "x";
-  (py, y_nBits, y_nLength, y_nLength_max, y_List, y_pList) <- bitvector_t ny "y";
-  crucible_execute_func [px, py];
+  x <- bitvector_t "x" CONST nx;
+  y <- bitvector_t "y" CONST ny;
+
+  execute [x.p, y.p];
 
   let n' = eval_int {{ `(nx + ny) : [32] }};
 
-  pbv <- crucible_alloc (struct "bitvector_t");
-  (nBits', nLength', nLength_max', List', pList') <- bitvector_t' n' "bv'" pbv;
-  crucible_return pbv;
+  pret <- pointer CONST (struct_t "bitvector_t");
+  ret <- bitvector_t' "ret" n' pret;
 
-  crucible_postcond
-    {{ (from_list`{b=nx} x_List) # (from_list`{b=ny} y_List) == (from_list`{b=n'} List') }};
+  let (x_List, y_List, ret_List) = ((x.List).c, (y.List).c, (ret.List).c);
+  postcond {{ (from_list`{b=nx} x_List) # (from_list`{b=ny} y_List) == (from_list`{b=n'} ret_List) }};
+
+  crucible_return pret;
 };
+
+bitvector_t_concat_result <-
+  bv_verify "bitvector_t_concat" [] (bitvector_t_concat_spec nBits nBits2);
+
 
 let bitvector_t_negateUpdate_spec (n : Int) = do {
   (pbv, nBits, nLength, nLength_max, List, pList) <- bitvector_t n "bv";
