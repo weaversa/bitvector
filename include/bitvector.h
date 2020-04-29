@@ -253,26 +253,6 @@ inline bitvector_t *bitvector_t_concat(bitvector_t *x, bitvector_t *y) {
   return ret;
 }
 
-inline bitvector_t *sequence_t_join(sequence_t *sequence) {
-  if(sequence == NULL) return NULL;
-
-  uint64_t parts = sequence->nLength;
-
-  if(parts == 0) return NULL;
-
-  bitvector_t *ret = bitvector_t_copy(&sequence->pList[0]);
-  if(parts == 1) return ret;
-  
-  uint32_t i;
-  for(i = 1; i < parts; i++) {
-    bitvector_t *tmp = bitvector_t_concat(ret, &sequence->pList[i]);
-    bitvector_t_free(ret);
-    ret = tmp;
-  }
-
-  return ret;
-}
-
 inline void bitvector_t_negateUpdate(bitvector_t *bv) {
   uint32_t i;
   for(i = 0; i < bv->bits.nLength; i++) {
@@ -371,6 +351,26 @@ inline sequence_t *bitvector_t_split(bitvector_t *bv, uint32_t parts) {
   }
 
   return sequence;
+}
+
+inline bitvector_t *sequence_t_join(sequence_t *sequence) {
+  if(sequence == NULL) return NULL;
+
+  uint64_t parts = sequence->nLength;
+
+  if(parts == 0) return NULL;
+
+  bitvector_t *ret = bitvector_t_copy(&sequence->pList[0]);
+  if(parts == 1) return ret;
+  
+  uint32_t i;
+  for(i = 1; i < parts; i++) {
+    bitvector_t *tmp = bitvector_t_concat(ret, &sequence->pList[i]);
+    bitvector_t_free(ret);
+    ret = tmp;
+  }
+
+  return ret;
 }
 
 inline uint8_t bitvector_t_equal(bitvector_t *x, bitvector_t *y) {
