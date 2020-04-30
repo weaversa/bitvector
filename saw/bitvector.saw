@@ -478,47 +478,59 @@ bitvector_t_setBit_result <-
   bv_verify "bitvector_t_setBit" [] (bitvector_t_setBit_spec nBits);
 
 
-
+//uint32_t bitvector_t_popcount(bitvector_t *bv)
 let bitvector_t_popcount_spec (n : Int) = do {
-  (pbv, nBits, nLength, nLength_max, List, pList) <- bitvector_t n "bv";
-  crucible_execute_func [pbv];
+  bv <- bitvector_t "bv" WRITE n;
+  execute [bv.p];
 
-  (nBits', nLength', nLength_max', List', pList') <- bitvector_t' n "bv'" pbv;
+  bv' <- bitvector_t' "bv'" n bv.p;
+  let (List, List') = ((bv.List).c, (bv'.List).c);
 
-  crucible_postcond {{ from_list`{b=n} List == from_list`{b=n} List' }};
+  postcond {{ (from_list`{b=n} List) == (from_list`{b=n} List') }};
 
-  crucible_return (crucible_term {{ (popcount (from_list`{b=n} List)) : [32] }});
+  returns (from_cryptol {{ (popcount (from_list`{b=n} List)) : [32] }});
 };
 
+bitvector_t_popcount_result <-
+  bv_verify "bitvector_t_popcount" [] (bitvector_t_popcount_spec nBits);
+
+
+//void bitvector_t_sliceUpdate(bitvector_t *slice, bitvector_t *bv, uint32_t start, uint32_t length)
 let bitvector_t_sliceUpdate_spec (n : Int) (start : Int) (length : Int) = do {
-  (pslice, s_nBits, s_nLength, s_nLength_max, s_List, s_pList) <- bitvector_t length "slice";
-  (pbv, nBits, nLength, nLength_max, List, pList) <- bitvector_t n "bv";
-  crucible_execute_func [pslice, pbv, crucible_term {{ `start : [32] }}, crucible_term {{ `length : [32] }}];
+  slice <- bitvector_t "slice" WRITE length;
+  bv <- bitvector_t "bv" CONST n;
+  
+  execute [slice.p, bv.p, from_cryptol {{ `start : [32] }}, from_cryptol {{ `length : [32] }}];
 
-  (nBits', nLength', nLength_max', List', pList') <- bitvector_t' n "bv'" pbv;
+  slice' <- bitvector_t' "slice'" length slice.p;
+  let (List, s_List') = ((bv.List).c, (slice'.List).c);
 
-  crucible_postcond {{ List == List' }};
-
-  (s_nBits', s_nLength', s_nLength_max', s_List', s_pList') <- bitvector_t' length "slice'" pslice;
-
-  crucible_postcond {{ from_list s_List' == (from_list`{b=n} List)!!([start+length, start+length-1 .. start]:[_][32]) }};
+  postcond {{ from_list`{b=length} s_List' == (from_list`{b=n} List)!!([start+length-1, start+length-2 .. start]:[length][32]) }};
 };
 
+bitvector_t_sliceUpdate_result <-
+  bv_verify "bitvector_t_sliceUpdate" [] (bitvector_t_sliceUpdate_spec nBits slicestart slicelength);
+
+
+//bitvector_t *bitvector_t_slice(bitvector_t *bv, uint32_t start, uint32_t length)
 let bitvector_t_slice_spec (n : Int) (start : Int) (length : Int) = do {
-  (pbv, nBits, nLength, nLength_max, List, pList) <- bitvector_t n "bv";
-  crucible_execute_func [pbv, crucible_term {{ `start : [32] }}, crucible_term {{ `length : [32] }}];
+  bv <- bitvector_t "bv" CONST n;
+  
+  execute [bv.p, from_cryptol {{ `start : [32] }}, from_cryptol {{ `length : [32] }}];
 
-  (nBits', nLength', nLength_max', List', pList') <- bitvector_t' n "bv'" pbv;
+  pslice <- pointer CONST (struct_t "bitvector_t");
+  slice' <- bitvector_t' "slice'" length pslice;
+  let (List, s_List') = ((bv.List).c, (slice'.List).c);
 
-  crucible_postcond {{ List == List' }};
+  postcond {{ from_list`{b=length} s_List' == (from_list`{b=n} List)!!([start+length-1, start+length-2 .. start]:[length][32]) }};
 
-  pslice <- crucible_alloc (struct "bitvector_t");
-  (s_nBits, s_nLength, s_nLength_max, s_List, s_pList) <- bitvector_t' length "slice'" pslice;
-
-  crucible_postcond {{ from_list s_List == (from_list`{b=n} List)!!([start+length, start+length-1 .. start]:[_][32]) }};
-
-  crucible_return pslice;
+  returns pslice;
 };
+
+bitvector_t_slice_result <-
+  bv_verify "bitvector_t_slice" [] (bitvector_t_slice_spec nBits slicestart slicelength);
+
+
 
 let bitvector_t_xorUpdate_spec (n : Int) = do {
   (px, x_nBits, x_nLength, x_nLength_max, x_List, x_pList) <- bitvector_t n "x";
