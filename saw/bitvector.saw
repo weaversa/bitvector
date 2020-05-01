@@ -8,6 +8,7 @@ let execute = crucible_execute_func;
 let postcond = crucible_postcond;
 let returns = crucible_return;
 let struct = crucible_struct;
+let array = crucible_array;
 let pointer rw type = if (eval_bool {{ rw == WRITE }})
                       then crucible_alloc type
                       else crucible_alloc_readonly type;
@@ -53,10 +54,29 @@ let string_t' string_name size = do {
   return {p=string.p, s=from_cryptol string.c, c=string.c};
 };
 
+/* Nice recursive definition.
+   Unfortunately gives [CrucibleSetup SetupValue] instead of CrucibleSetup [SetupValue].
+
 rec struct_list numElements init_function params =
   if (eval_bool {{ (`numElements : [32]) == 0 }}) then []
   else (concat [init_function params]
                (struct_list (eval_int {{ (`numElements : [32]) - 1 }}) init_function params));
+*/
+
+rec struct_list_rec numElements init_function params = do {
+  element <- init_function params;
+  rest <- struct_list_rec (eval_int {{ (`numElements : [32]) - 1 }}) init_function params;
+  let ret = if (eval_bool {{ (`numElements : [32]) == 0 }}) then [] else (concat [element] rest);
+  return ret;
+};
+
+let struct_list rw numElements init_function params type = do {
+  list <- struct_list_rec numElements init_function params : CrucibleSetup [SetupValue];
+  let arr = array list;
+  p <- pointer rw type;
+  points_to p arr;
+  return {p=p, s=arr};
+};
 
 let {{
   hexstring_to_bv : {a} (fin a) => [a][8] -> [a*4]
@@ -119,16 +139,31 @@ let bitvector_t' name n pbv = do {
   return {p=pbv, nBits=bv.nBits, nLength=bv.nLength, nLength_max=bv.nLength_max, List=bv.List};
 };
 
-let bitvector_t_setup_rec (name, rw, n) = bitvector_t_setup name rw n;
-
-abcd <- struct_list 10 bitvector_t_setup_rec ("hi", CONST, 6);
-print abcd;
-
-let sequence_t name rw numElements n = do {
-  //let seq = struct_list numElements bitvector_t_setup_rec (name, rw, n);
-  seq <- struct_list numElements bitvector_t_setup_rec (name, rw, n);
-  return seq;
+let bitvector_t_setup_struct (name, rw, n) = do {
+  bv <- bitvector_t_setup name rw n;
+  return bv.struct;
 };
+
+let sequence_t_setup name rw nLength nBits = do {
+  List <- struct_list rw nLength bitvector_t_setup_struct (name, rw, nBits) (struct_t "sequence_t");
+  nLength_max <- variable (str_concat name ".nLength_max") uint64_t;
+  let seq_struct = struct [ from_cryptol {{ `nLength : [64] }},
+                            nLength_max.s,
+                            List.s ];
+
+  precond {{ (`nLength_max : [64]) >= (`nLength : [64])}};
+  pseq <- pointer rw (struct_t "sequence_t");
+  points_to pseq seq_struct;
+
+/*
+  for List.s (\e -> do { let (nL, nL_max) = (crucible_field e "nLength", crucible_field e "nLength_max");
+                         crucible_precond {{ nL_max >= nL }}; });
+//blah...crucible_field returns a pointer to a setupvalue?
+*/
+
+  return {p=pseq, struct=seq_struct, nBits=from_cryptol {{ `nBits : [64] }}, nLength=from_cryptol {{ `nLength : [64] }}, nLength_max=nLength_max.c, List=List};
+};
+
 
 let nBits = 200;
 let nBits2 = 137;
@@ -146,8 +181,6 @@ let bv_verify function_name overrides spec =
 //void bitvector_t_zeroize(bitvector_t *bv)
 let bitvector_t_zeroize_spec (n : Int) = do {
   bv <- bitvector_t "bv" WRITE n;
-
-  hi <- sequence_t "test" CONST 10 32;
 
   execute [bv.p];
 
