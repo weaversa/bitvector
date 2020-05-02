@@ -67,10 +67,10 @@ rec struct_list_rec numElements init_function params = do {
   element <- init_function params : CrucibleSetup {s : SetupValue, c : Term};
   rest <- struct_list_rec (eval_int {{ (`numElements : [32]) - 1 }}) init_function params : CrucibleSetup {s : [SetupValue], c : Term};
   let ret_s = if (eval_bool {{ (`numElements : [32]) == 0 }}) then [] else (concat [element.s] rest.s) : [SetupValue];
-  let element_c = element.c;
-  let rest_c = rest.c;
-  let ret_c = if (eval_bool {{ (`numElements : [32]) == 0 }}) then {{ [] }} else {{ [element_c] # rest_c }} : Term;
-  return {s=ret_s, c=ret_c};
+//  let element_c = element.c;
+//  let rest_c = rest.c;
+//  let ret_c = if (eval_bool {{ (`numElements : [32]) == 0 }}) then {{ [] }} else {{ [element_c] # rest_c }} : Term;
+  return {s=ret_s, c={{0 : [32]}}};//, c=ret_c};
 };
 
 let struct_list rw numElements init_function params type = do {
@@ -607,7 +607,7 @@ let bitvector_t_split_spec (n : Int) (parts : Int) = do {
   execute [bv.p, from_cryptol {{ `parts : [32] }}];
 
   pseq <- pointer CONST (struct_t "sequence_t");
-//  seq <- sequence_t' "sequence" parts n pseq;
+  seq <- sequence_t' "sequence" parts n pseq;
 
 //  let List_c = (seq.List).c;
 //  let List_bv = (bv.List).c;
