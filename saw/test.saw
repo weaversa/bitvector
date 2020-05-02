@@ -68,27 +68,27 @@ let struct_list_empty = do {
   return {s=[], c={{ [] }}} : CrucibleSetup {s : [SetupValue], c : Term};
 };
 
-rec struct_list_rec (numElements : Int) (init_function : a -> CrucibleSetup {s : SetupValue, c : Term}) (params : a) = do {
+rec struct_list_rec (numElements : Int) (init_function : Int -> a -> CrucibleSetup {s : SetupValue, c : Term}) (params : a) = do {
   err <- if (eval_bool {{ (`numElements : [32]) == 0 }}) then error else noerror; //numElements must be greater than 0
-  element <- init_function params : CrucibleSetup {s : SetupValue, c : Term};
+  element <- init_function (eval_int {{ (`numElements : [32]) - 1 }}) params;
   rest <- if (eval_bool {{ (`numElements : [32]) == 1 }}) then struct_list_empty
-          else struct_list_rec (eval_int {{ (`numElements : [32]) - 1 }}) init_function params : CrucibleSetup {s : [SetupValue], c : Term};
+          else struct_list_rec (eval_int {{ (`numElements : [32]) - 1 }}) init_function params;
 
-  let ret_s = (concat [element.s] rest.s) : [SetupValue];
+  let ret_s = (concat [element.s] rest.s);
 
   let element_c = element.c;
   let rest_c = rest.c;
-  let ret_c = {{ [element_c] # rest_c : [numElements]_ }} : Term;
+  let ret_c = {{ [element_c] # rest_c : [numElements]_ }};
 
   return {s=ret_s, c=ret_c};
 };
 
-let struct_list (rw : Term) (numElements : Int) (init_function : a -> CrucibleSetup {s : SetupValue, c : Term}) (params : a) (type : LLVMType) = do {
-  list <- struct_list_rec numElements init_function params : CrucibleSetup {s : [SetupValue], c : Term};
+let struct_list (rw : Term) (numElements : Int) (init_function : Int -> a -> CrucibleSetup {s : SetupValue, c : Term}) (params : a) (type : LLVMType) = do {
+  list <- struct_list_rec numElements init_function params;
   let arr = array list.s;
   p <- pointer rw (llvm_array numElements type);
   points_to p arr;
-  return {p=p : SetupValue, s=arr : SetupValue, c=list.c : Term};
+  return {p=p, s=arr, c=list.c};
 };
 
 let {{
@@ -152,14 +152,14 @@ let bitvector_t' (name : String) (n : Int) (pbv : SetupValue) = do {
   return {p=pbv, struct=bv.struct, nBits=bv.nBits, nLength=bv.nLength, nLength_max=bv.nLength_max, List=bv.List};
 };
 
-let bitvector_t_struct (name : String, rw : Term, n : Int) = do {
+let bitvector_t_struct (_ : Int) (name : String, rw : Term, n : Int) = do {
   bv <- bitvector_t_setup name rw n;
   let (nLength, nLength_max) = (bv.nLength, bv.nLength_max);
   precond {{ nLength_max >= nLength }};
   return {s=bv.struct, c=(bv.List).c};
 };
 
-let bitvector_t_struct' (name : String,  n : Int) = do {
+let bitvector_t_struct' (_ : Int) (name : String,  n : Int) = do {
   bv <- bitvector_t_setup name CONST n;
   let (nLength, nLength_max) = (bv.nLength, bv.nLength_max);
   postcond {{ nLength_max >= nLength }};
