@@ -318,7 +318,7 @@ inline void bitvector_t_sliceUpdate(bitvector_t *slice, bitvector_t *bv, uint32_
   }
   
   uint32_t startW  = start >> 6;
-  uint32_t lengthW = (length >> 6) + 1;
+  uint32_t lengthW = (length+63) >> 6;
   uint32_t i;
   for(i = 0; i < lengthW; i++) {
     slice->bits.pList[i] = bv->bits.pList[startW + i] >> (start&0x3f);

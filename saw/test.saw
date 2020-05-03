@@ -159,7 +159,7 @@ let bitvector_t_struct (_ : Int) (name : String, rw : Term, n : Int) = do {
   return {s=bv.struct, c=(bv.List).c};
 };
 
-let bitvector_t_struct' (_ : Int) (name : String,  n : Int) = do {
+let bitvector_t_struct' (_ : Int) (name : String, n : Int) = do {
   bv <- bitvector_t_setup name CONST n;
   let (nLength, nLength_max) = (bv.nLength, bv.nLength_max);
   postcond {{ nLength_max >= nLength }};
@@ -167,7 +167,7 @@ let bitvector_t_struct' (_ : Int) (name : String,  n : Int) = do {
 };
 
 let sequence_t (name : String) (rw : Term) (nLength : Int) (nBits : Int) = do {
-  List <- struct_list rw nLength bitvector_t_struct ((str_concat name ".pList"), rw, nBits) (struct_t "bitvector_t");
+  List <- struct_list rw nLength bitvector_t_struct (str_concat name ".pList", rw, eval_int {{ (`nBits : [32]) / `nLength }}) (struct_t "bitvector_t");
   nLength_max <- variable (str_concat name ".nLength_max") uint64_t;
   let seq_struct = struct [ from_cryptol {{ `nLength : [64] }},
                             nLength_max.s,
@@ -178,11 +178,12 @@ let sequence_t (name : String) (rw : Term) (nLength : Int) (nBits : Int) = do {
   pseq <- pointer rw (llvm_array nLength (struct_t "sequence_t"));
   points_to pseq seq_struct;
 
-  return {p=pseq, struct=seq_struct, nBits=from_cryptol {{ `nBits : [64] }}, nLength=from_cryptol {{ `nLength : [64] }}, nLength_max=nLength_max.c, List=List};
+  return {p=pseq, struct=seq_struct, nBits=from_cryptol {{ `nBits : [32] }}, nLength=from_cryptol {{ `nLength : [64] }}, nLength_max=nLength_max.c, List=List};
 };
 
 let sequence_t' (name : String) (nLength : Int) (nBits : Int) (pseq : SetupValue) = do {
-  List <- struct_list CONST nLength bitvector_t_struct' ((str_concat name ".pList"), nBits) (struct_t "bitvector_t");
+  List <- struct_list CONST nLength bitvector_t_struct' (str_concat name ".pList", eval_int {{ (`nBits : [32]) / `nLength }}) (struct_t "bitvector_t");
+
   nLength_max <- variable (str_concat name ".nLength_max") uint64_t;
   let seq_struct = struct [ from_cryptol {{ `nLength : [64] }},
                             nLength_max.s,
@@ -191,7 +192,7 @@ let sequence_t' (name : String) (nLength : Int) (nBits : Int) (pseq : SetupValue
   postcond {{ (nLength_max_c : [64]) >= (`nLength : [64])}};
   points_to pseq seq_struct;
 
-  return {p=pseq, struct=seq_struct, nBits=from_cryptol {{ `nBits : [64] }}, nLength=from_cryptol {{ `nLength : [64] }}, nLength_max=nLength_max.c, List=List};
+  return {p=pseq, struct=seq_struct, nBits=from_cryptol {{ `nBits : [32] }}, nLength=from_cryptol {{ `nLength : [64] }}, nLength_max=nLength_max.c, List=List};
 };
 
 let bv_verify function_name overrides spec =
@@ -200,7 +201,7 @@ let bv_verify function_name overrides spec =
 
 //sequence_t *bitvector_t_split(bitvector_t *bv, uint32_t parts)
 let bitvector_t_split_spec (n : Int) (parts : Int) = do {
-  bv <- bitvector_t "bv" CONST n;
+  bv <- bitvector_t "bv" WRITE n;
 
   execute [bv.p, from_cryptol {{ `parts : [32] }}];
 
@@ -216,4 +217,4 @@ let bitvector_t_split_spec (n : Int) (parts : Int) = do {
 };
 
 bitvector_t_split_result <-
-  bv_verify "bitvector_t_split" [] (bitvector_t_split_spec 3 1);
+  bv_verify "bitvector_t_split" [] (bitvector_t_split_spec 128 2);
