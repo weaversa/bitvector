@@ -174,8 +174,8 @@ let sequence_t (name : String) (rw : Term) (nLength : Int) (nBits : Int) = do {
                             List.p ];
 
   let nLength_max_c = nLength_max.c;
-  precond {{ (`nLength_max_c : [64]) >= (`nLength : [64])}};
-  pseq <- pointer rw (llvm_array nLength (struct_t "sequence_t"));
+  precond {{ (nLength_max_c : [64]) >= (`nLength : [64])}};
+  pseq <- pointer rw (struct_t "sequence_t");
   points_to pseq seq_struct;
 
   return {p=pseq, struct=seq_struct, nBits=from_cryptol {{ `nBits : [32] }}, nLength=from_cryptol {{ `nLength : [64] }}, nLength_max=nLength_max.c, List=List};
@@ -197,6 +197,62 @@ let sequence_t' (name : String) (nLength : Int) (nBits : Int) (pseq : SetupValue
 
 let bv_verify function_name overrides spec =
   crucible_llvm_verify bitvector_bc function_name overrides true spec z3;
+
+
+let f_2_spec = do {
+  seq <- sequence_t "seq" CONST 2 10;
+
+  crucible_execute_func [seq.p];
+
+  seq' <- sequence_t' "seq" 2 10 seq.p;
+
+  crucible_return seq'.p;
+};
+
+let f_3_spec = do {
+  seq <- sequence_t "seq" CONST 2 10;
+
+  crucible_execute_func [seq.p];
+
+  bv0 <- bitvector_t_struct' 0 ("bv0", 10);
+  bv1 <- bitvector_t_struct' 1 ("bv1", 10);
+  let bv = crucible_array [bv0.s, bv1.s];
+  pbv <- crucible_alloc (llvm_array 2 (struct_t "bitvector_t"));
+  crucible_points_to pbv bv;
+  
+  nLength_max <- variable "nLength_max" uint64_t;
+  let seq_struct = struct [ from_cryptol {{ 2 : [64] }},
+                            nLength_max.s,
+                            pbv ];
+
+  let nLength_max_c = nLength_max.c;
+  postcond {{ (nLength_max_c : [64]) >= (2 : [64])}};
+  points_to seq.p seq_struct;
+
+
+//  List <- struct_list rw nLength bitvector_t_struct (str_concat name ".pList", rw, eval_int {{ (`nBits : [32]) / `nLength }}) (struct_t "bitvector_t");
+
+  crucible_return (seq.p);
+};
+
+
+let f_spec = do {
+  x0 <- crucible_fresh_var "x0" (llvm_int 32);
+  let x = crucible_array [crucible_term x0];
+  xp <- crucible_alloc (llvm_array 1 (llvm_int 32));
+  crucible_points_to xp x;
+
+  crucible_execute_func [xp];
+
+  x0' <- crucible_fresh_var "x0'" (llvm_int 32);
+  let x' = crucible_array [crucible_term x0'];
+  crucible_points_to xp x';
+
+  crucible_return (xp);
+};
+
+f_result <-
+  bv_verify "f" [] f_spec;
 
 
 //sequence_t *bitvector_t_split(bitvector_t *bv, uint32_t parts)
