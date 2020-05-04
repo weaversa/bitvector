@@ -560,10 +560,7 @@ let bitvector_t_popcount_spec (n : Int) = do {
   bv <- bitvector_t "bv" WRITE n;
   execute [bv.p];
 
-  bv' <- bitvector_t' "bv'" n bv.p;
-  let (List, List') = ((bv.List).c, (bv'.List).c);
-
-  postcond {{ (from_list`{b=n} List) == (from_list`{b=n} List') }};
+  let List = (bv.List).c;
 
   returns (from_cryptol {{ (popcount (from_list`{b=n} List)) : [32] }});
 };
@@ -648,6 +645,21 @@ let sequence_t_join_spec (n : Int) (parts : Int) = do {
 sequence_t_join_result <-
   bv_verify "sequence_t_join" [] (sequence_t_join_spec 64 2);
 
+
+//uint8_t bitvector_t_equal(bitvector_t *x, bitvector_t *y)
+let bitvector_t_equal_spec (n : Int) = do {
+  x <- bitvector_t "x" WRITE n;
+  y <- bitvector_t "y" WRITE n;
+
+  execute [x.p, y.p];
+
+  let (xList, yList) = ((x.List).c, (y.List).c);
+
+  returns (from_cryptol {{ if (from_list`{b=n} xList) == (from_list`{b=n} yList) then 1 else 0 : [8]}} );
+};
+
+bitvector_t_equal_result <-
+  bv_verify "bitvector_t_equal" [] (bitvector_t_equal_spec nBits);
 
 
 let bitvector_t_xorUpdate_spec (n : Int) = do {
