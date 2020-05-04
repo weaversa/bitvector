@@ -653,186 +653,121 @@ let bitvector_t_equal_spec (n : Int) = do {
 
   execute [x.p, y.p];
 
-  let (xList, yList) = ((x.List).c, (y.List).c);
+  let (x_List, y_List) = ((x.List).c, (y.List).c);
 
-  returns (from_cryptol {{ if (from_list`{b=n} xList) == (from_list`{b=n} yList) then 1 else 0 : [8]}} );
+  returns (from_cryptol {{ if (from_list`{b=n} x_List) == (from_list`{b=n} y_List) then 1 else 0 : [8]}} );
 };
 
 bitvector_t_equal_result <-
   bv_verify "bitvector_t_equal" [] (bitvector_t_equal_spec nBits);
 
 
+//void bitvector_t_xorUpdate(bitvector_t *x, bitvector_t *y)
 let bitvector_t_xorUpdate_spec (n : Int) = do {
-  (px, x_nBits, x_nLength, x_nLength_max, x_List, x_pList) <- bitvector_t n "x";
-  (py, y_nBits, y_nLength, y_nLength_max, y_List, y_pList) <- bitvector_t n "y";
-  crucible_execute_func [px, py];
+  x <- bitvector_t "x" WRITE n;
+  y <- bitvector_t "y" CONST n;
 
-  (x_nBits', x_nLength', x_nLength_max', x_List', x_pList') <- bitvector_t' n "x'" px;
+  execute [x.p, y.p];
 
-  (y_nBits', y_nLength', y_nLength_max', y_List', y_pList') <- bitvector_t' n "y'" py;
+  x' <- bitvector_t' "bv" n x.p;
+  let (x_List', x_List, y_List) = ((x'.List).c, (x.List).c, (y.List).c);
 
-  crucible_postcond {{ y_List' == y_List }};
-  crucible_postcond {{ x_List' == x_List ^ y_List }};
+  postcond {{ (from_list`{b=n} x_List') == ((from_list`{b=n} x_List) ^ (from_list`{b=n} y_List)) }};
 };
 
+bitvector_t_xorUpdate_result <-
+  bv_verify "bitvector_t_xorUpdate" [] (bitvector_t_xorUpdate_spec nBits);
+
+
+//void bitvector_t_xor(bitvector_t *x, bitvector_t *y)
 let bitvector_t_xor_spec (n : Int) = do {
-  (px, x_nBits, x_nLength, x_nLength_max, x_List, x_pList) <- bitvector_t n "x";
-  (py, y_nBits, y_nLength, y_nLength_max, y_List, y_pList) <- bitvector_t n "y";
-  crucible_execute_func [px, py];
+  x <- bitvector_t "x" CONST n;
+  y <- bitvector_t "y" CONST n;
 
-  (x_nBits', x_nLength', x_nLength_max', x_List', x_pList') <- bitvector_t' n "x'" px;
+  execute [x.p, y.p];
 
-  crucible_postcond {{ x_List' == x_List }};
-  
-  (y_nBits', y_nLength', y_nLength_max', y_List', y_pList') <- bitvector_t' n "y'" py;
+  retp <- pointer CONST (struct_t "bitvector_t");
+  ret <- bitvector_t' "bv" n retp;
+  let (ret_List, x_List, y_List) = ((ret.List).c, (x.List).c, (y.List).c);
 
-  crucible_postcond {{ y_List' == y_List }};
+  postcond {{ (from_list`{b=n} ret_List) == ((from_list`{b=n} x_List) ^ (from_list`{b=n} y_List)) }};
 
-  presult <- crucible_alloc (struct "bitvector_t");
-  (r_nBits, r_nLength, r_nLength_max, r_List, r_pList) <- bitvector_t' n "r" presult;
-
-  crucible_return presult;
-
-  crucible_postcond {{ r_List == x_List ^ y_List }};
+  returns ret.p;
 };
 
+bitvector_t_xor_result <-
+  bv_verify "bitvector_t_xor" [bitvector_t_xorUpdate_result] (bitvector_t_xor_spec nBits);
+
+
+//void bitvector_t_orUpdate(bitvector_t *x, bitvector_t *y)
 let bitvector_t_orUpdate_spec (n : Int) = do {
-  (px, x_nBits, x_nLength, x_nLength_max, x_List, x_pList) <- bitvector_t n "x";
-  (py, y_nBits, y_nLength, y_nLength_max, y_List, y_pList) <- bitvector_t n "y";
-  crucible_execute_func [px, py];
+  x <- bitvector_t "x" WRITE n;
+  y <- bitvector_t "y" CONST n;
 
-  (x_nBits', x_nLength', x_nLength_max', x_List', x_pList') <- bitvector_t' n "x'" px;
+  execute [x.p, y.p];
 
-  (y_nBits', y_nLength', y_nLength_max', y_List', y_pList') <- bitvector_t' n "y'" py;
+  x' <- bitvector_t' "bv" n x.p;
+  let (x_List', x_List, y_List) = ((x'.List).c, (x.List).c, (y.List).c);
 
-  crucible_postcond {{ y_List' == y_List }};
-  crucible_postcond {{ x_List' == x_List || y_List }};
+  postcond {{ (from_list`{b=n} x_List') == ((from_list`{b=n} x_List) || (from_list`{b=n} y_List)) }};
 };
 
+bitvector_t_orUpdate_result <-
+  bv_verify "bitvector_t_orUpdate" [] (bitvector_t_orUpdate_spec nBits);
+
+
+//void bitvector_t_or(bitvector_t *x, bitvector_t *y)
 let bitvector_t_or_spec (n : Int) = do {
-  (px, x_nBits, x_nLength, x_nLength_max, x_List, x_pList) <- bitvector_t n "x";
-  (py, y_nBits, y_nLength, y_nLength_max, y_List, y_pList) <- bitvector_t n "y";
-  crucible_execute_func [px, py];
+  x <- bitvector_t "x" CONST n;
+  y <- bitvector_t "y" CONST n;
 
-  (x_nBits', x_nLength', x_nLength_max', x_List', x_pList') <- bitvector_t' n "x'" px;
+  execute [x.p, y.p];
 
-  crucible_postcond {{ x_List' == x_List }};
-  
-  (y_nBits', y_nLength', y_nLength_max', y_List', y_pList') <- bitvector_t' n "y'" py;
+  retp <- pointer CONST (struct_t "bitvector_t");
+  ret <- bitvector_t' "bv" n retp;
+  let (ret_List, x_List, y_List) = ((ret.List).c, (x.List).c, (y.List).c);
 
-  crucible_postcond {{ y_List' == y_List }};
+  postcond {{ (from_list`{b=n} ret_List) == ((from_list`{b=n} x_List) || (from_list`{b=n} y_List)) }};
 
-  presult <- crucible_alloc (struct "bitvector_t");
-  (r_nBits, r_nLength, r_nLength_max, r_List, r_pList) <- bitvector_t' n "r" presult;
-
-  crucible_return presult;
-
-  crucible_postcond {{ r_List == x_List || y_List }};
+  returns ret.p;
 };
 
+bitvector_t_or_result <-
+  bv_verify "bitvector_t_or" [bitvector_t_orUpdate_result] (bitvector_t_or_spec nBits);
+
+
+//void bitvector_t_andUpdate(bitvector_t *x, bitvector_t *y)
 let bitvector_t_andUpdate_spec (n : Int) = do {
-  (px, x_nBits, x_nLength, x_nLength_max, x_List, x_pList) <- bitvector_t n "x";
-  (py, y_nBits, y_nLength, y_nLength_max, y_List, y_pList) <- bitvector_t n "y";
-  crucible_execute_func [px, py];
+  x <- bitvector_t "x" WRITE n;
+  y <- bitvector_t "y" CONST n;
 
-  (x_nBits', x_nLength', x_nLength_max', x_List', x_pList') <- bitvector_t' n "x'" px;
+  execute [x.p, y.p];
 
-  (y_nBits', y_nLength', y_nLength_max', y_List', y_pList') <- bitvector_t' n "y'" py;
+  x' <- bitvector_t' "bv" n x.p;
+  let (x_List', x_List, y_List) = ((x'.List).c, (x.List).c, (y.List).c);
 
-  crucible_postcond {{ y_List' == y_List }};
-  crucible_postcond {{ x_List' == x_List && y_List }};
+  postcond {{ (from_list`{b=n} x_List') == ((from_list`{b=n} x_List) && (from_list`{b=n} y_List)) }};
 };
 
+bitvector_t_andUpdate_result <-
+  bv_verify "bitvector_t_andUpdate" [] (bitvector_t_andUpdate_spec nBits);
+
+
+//void bitvector_t_and(bitvector_t *x, bitvector_t *y)
 let bitvector_t_and_spec (n : Int) = do {
-  (px, x_nBits, x_nLength, x_nLength_max, x_List, x_pList) <- bitvector_t n "x";
-  (py, y_nBits, y_nLength, y_nLength_max, y_List, y_pList) <- bitvector_t n "y";
-  crucible_execute_func [px, py];
+  x <- bitvector_t "x" CONST n;
+  y <- bitvector_t "y" CONST n;
 
-  (x_nBits', x_nLength', x_nLength_max', x_List', x_pList') <- bitvector_t' n "x'" px;
+  execute [x.p, y.p];
 
-  crucible_postcond {{ x_List' == x_List }};
-  
-  (y_nBits', y_nLength', y_nLength_max', y_List', y_pList') <- bitvector_t' n "y'" py;
+  retp <- pointer CONST (struct_t "bitvector_t");
+  ret <- bitvector_t' "bv" n retp;
+  let (ret_List, x_List, y_List) = ((ret.List).c, (x.List).c, (y.List).c);
 
-  crucible_postcond {{ y_List' == y_List }};
+  postcond {{ (from_list`{b=n} ret_List) == ((from_list`{b=n} x_List) && (from_list`{b=n} y_List)) }};
 
-  presult <- crucible_alloc (struct "bitvector_t");
-  (r_nBits, r_nLength, r_nLength_max, r_List, r_pList) <- bitvector_t' n "r" presult;
-
-  crucible_return presult;
-
-  crucible_postcond {{ r_List == x_List && y_List }};
+  returns ret.p;
 };
 
-let bitvector_t_equal_spec (n : Int) = do {
-  (px, x_nBits, x_nLength, x_nLength_max, x_List, x_pList) <- bitvector_t n "x";
-  (py, y_nBits, y_nLength, y_nLength_max, y_List, y_pList) <- bitvector_t n "y";
-  crucible_execute_func [px, py];
-
-  (x_nBits', x_nLength', x_nLength_max', x_List', x_pList') <- bitvector_t' n "x'" px;
-
-  crucible_postcond {{ (from_list`{b=n} x_List) == (from_list`{b=n} x_List') }};
-  
-  (y_nBits', y_nLength', y_nLength_max', y_List', y_pList') <- bitvector_t' n "y'" py;
-
-  crucible_postcond {{ (from_list`{b=n} y_List) == (from_list`{b=n} y_List') }};
-
-  crucible_return (crucible_term {{ 0 # [(from_list`{b=n} x_List) == (from_list`{b=n} y_List)] : [8] }});
-};
-
-
-bitvector_bc <- llvm_load_module "../obj/bitvector.bc";
-
-
-
-bitvector_t_zeroize_result <- crucible_llvm_verify bitvector_bc "bitvector_t_zeroize" [] false (bitvector_t_zeroize_spec nBits) z3;
-
-bitvector_t_alloc_result <- crucible_llvm_verify bitvector_bc "bitvector_t_alloc" [bitvector_t_zeroize_result] false (bitvector_t_alloc_spec nBits) z3;
-
-bitvector_t_cleanHighBits_result <- crucible_llvm_verify bitvector_bc "bitvector_t_cleanHighBits" [] false (bitvector_t_cleanHighBits_spec nBits) z3;
-
-bitvector_t_fromHexString_result <- crucible_llvm_verify bitvector_bc "bitvector_t_fromHexString" [] true (bitvector_t_fromHexString_spec nHexChars) z3;
-
-bitvector_t_copyUpdate_result <- crucible_llvm_verify bitvector_bc "bitvector_t_copyUpdate" [] true (bitvector_t_copyUpdate_spec nBits) z3;
-
-bitvector_t_copy_result <- crucible_llvm_verify bitvector_bc "bitvector_t_copy" [bitvector_t_copyUpdate_result] true (bitvector_t_copy_spec nBits) z3;
-
-bitvector_t_widenUpdate_result <- crucible_llvm_verify bitvector_bc "bitvector_t_widenUpdate" [] true (bitvector_t_widenUpdate_spec nBits nBitsToAdd) z3;
-
-bitvector_t_concat_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_concat" [bitvector_t_widenUpdate_result] true (bitvector_t_concat_spec nBits2 nBits) z3);
-
-bitvector_t_negateUpdate_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_negateUpdate" [] true (bitvector_t_negateUpdate_spec nBits) z3);
-
-bitvector_t_negate_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_negate" [bitvector_t_negateUpdate_result] true (bitvector_t_negate_spec nBits) z3);
-
-bitvector_t_dropUpdate_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_dropUpdate" [] true (bitvector_t_dropUpdate_spec nBits nBitsToDrop) z3);
-
-bitvector_t_drop_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_drop" [] true (bitvector_t_drop_spec nBits nBitsToDrop) z3);
-
-bitvector_t_getBit_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_getBit" [] true (bitvector_t_getBit_spec nBits) z3);
-
-bitvector_t_setBit_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_setBit" [] true (bitvector_t_setBit_spec nBits) z3);
-
-bitvector_t_popcount_result <- crucible_llvm_verify bitvector_bc "bitvector_t_popcount" [] true (bitvector_t_popcount_spec nBits) z3;
-
-bitvector_t_sliceUpdate_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_sliceUpdate" [] true (bitvector_t_sliceUpdate_spec nBits slicestart slicelength) z3);
-
-bitvector_t_slice_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_slice" [bitvector_t_sliceUpdate_result] true (bitvector_t_slice_spec nBits slicestart slicelength) z3);
-
-bitvector_t_xorUpdate_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_xorUpdate" [] true (bitvector_t_xorUpdate_spec nBits) z3);
-
-bitvector_t_xor_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_xor" [bitvector_t_xorUpdate_result] true (bitvector_t_xor_spec nBits) z3);
-
-bitvector_t_orUpdate_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_orUpdate" [] true (bitvector_t_orUpdate_spec nBits) z3);
-
-bitvector_t_or_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_or" [bitvector_t_orUpdate_result] true (bitvector_t_or_spec nBits) z3);
-
-bitvector_t_andUpdate_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_andUpdate" [] true (bitvector_t_andUpdate_spec nBits) z3);
-
-bitvector_t_and_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_and" [bitvector_t_andUpdate_result] true (bitvector_t_and_spec nBits) z3);
-
-bitvector_t_equal_result <- (crucible_llvm_verify bitvector_bc "bitvector_t_equal" [] true (bitvector_t_equal_spec nBits) z3);
-
-
-
-
+bitvector_t_and_result <-
+  bv_verify "bitvector_t_and" [bitvector_t_andUpdate_result] (bitvector_t_and_spec nBits);
