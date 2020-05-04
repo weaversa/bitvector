@@ -245,7 +245,7 @@ inline bitvector_t *bitvector_t_concat(bitvector_t *x, bitvector_t *y) {
 
   for(i = start; i < start + length; i++) {
     ret->bits.pList[i] |= x->bits.pList[i-start] << (y->nBits&0x3f);
-    if(i + 1 < ret->bits.nLength) {
+    if((i + 1 < ret->bits.nLength) && ((y->nBits&0x3f) != 0)) {
       ret->bits.pList[i+1] = x->bits.pList[i-start] >> (64 - (y->nBits&0x3f));
     }
   }

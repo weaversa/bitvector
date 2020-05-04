@@ -19,19 +19,19 @@ let uint16_t = llvm_int 16;
 let uint8_t = llvm_int 8;
 let struct_t struct_name = llvm_type (str_concat "%struct." struct_name);
 
-let variable name type = do {
+let variable (name : String) (type : LLVMType) = do {
   cryptol_var <- crucible_fresh_var name type;
   return {s=from_cryptol cryptol_var, c=cryptol_var};
 };
 
-let alloc name rw type = do {
+let alloc (name : String) (rw : Term) (type : LLVMType) = do {
   p <- pointer rw type;
   v <- variable name type;
   points_to p v.s;
   return {p=p, s=v.s, c=v.c};
 };
 
-let list name rw size basetype = do {
+let list (name : String) (rw : Term) (size : Int) (basetype : LLVMType) = do {
   let type = llvm_array size basetype;
   value <- alloc name rw type;
   return {p=value.p, s=value.s, c=value.c};
@@ -40,45 +40,52 @@ let list name rw size basetype = do {
 //Here the pointer points to a sting of size `size+1` that is NULL
 //terminated. The Cryptol value does not have the NULL at the end of
 //the string.
-let string_t string_name rw size = do {
+let string_t (string_name : String) (rw : Term) (size : Int) = do {
   string <- crucible_fresh_var string_name (llvm_array size uint8_t);
   pstring <- pointer rw (llvm_array (eval_int {{ `size + 1 : [64] }}) uint8_t);
   points_to pstring (from_cryptol {{ string # [0] }});
   return {p=pstring, s=from_cryptol string, c=string};
 };
 
-let string_t' string_name size = do {
+let string_t' (string_name : String) (size : Int) = do {
   string <- list "string" CONST (eval_int {{ `(size+1) : [64] }}) uint8_t;
   let s = string.c;
   postcond {{ s@(`size : [64]) == 0 }};
   return {p=string.p, s=from_cryptol string.c, c=string.c};
 };
 
-/* Nice recursive definition.
-   Unfortunately gives [CrucibleSetup SetupValue] instead of CrucibleSetup [SetupValue].
-
-rec struct_list numElements init_function params =
-  if (eval_bool {{ (`numElements : [32]) == 0 }}) then []
-  else (concat [init_function params]
-               (struct_list (eval_int {{ (`numElements : [32]) - 1 }}) init_function params));
-*/
-
-rec struct_list_rec numElements init_function params = do {
-  element <- init_function params : CrucibleSetup {s : SetupValue, c : Term};
-  rest <- struct_list_rec (eval_int {{ (`numElements : [32]) - 1 }}) init_function params : CrucibleSetup {s : [SetupValue], c : Term};
-  let ret_s = if (eval_bool {{ (`numElements : [32]) == 0 }}) then [] else (concat [element.s] rest.s) : [SetupValue];
-//  let element_c = element.c;
-//  let rest_c = rest.c;
-//  let ret_c = if (eval_bool {{ (`numElements : [32]) == 0 }}) then {{ [] }} else {{ [element_c] # rest_c }} : Term;
-  return {s=ret_s, c={{0 : [32]}}};//, c=ret_c};
+let error = do {
+  crucible_precond {{ True }};
+  crucible_postcond {{ True }};
+  return {{ True }};
 };
 
-let struct_list rw numElements init_function params type = do {
-  list <- struct_list_rec numElements init_function params : CrucibleSetup {s : [SetupValue], c : Term};
+let noerror = do {
+  return {{ True }};
+};
+
+let struct_list_empty = do {
+  return {s=[] : [SetupValue], bucket=[] : [b]} : CrucibleSetup {s : [SetupValue], bucket : [b]};
+};
+
+rec struct_list_rec (numElements : Int) (init_function : Int -> a -> CrucibleSetup {s : SetupValue, bucket : b}) (params : a) = do {
+  err <- if (eval_bool {{ (`numElements : [32]) == 0 }}) then error else noerror; //numElements must be greater than 0
+  element <- init_function (eval_int {{ (`numElements : [32]) - 1 }}) params;
+  rest <- if (eval_bool {{ (`numElements : [32]) == 1 }}) then struct_list_empty
+          else struct_list_rec (eval_int {{ (`numElements : [32]) - 1 }}) init_function params;
+
+  let ret_s = (concat rest.s [element.s]);
+  let ret_bucket = (concat rest.bucket [element.bucket]);
+
+  return {s=ret_s, bucket=ret_bucket};
+};
+
+let struct_list (rw : Term) (numElements : Int) (init_function : Int -> a -> CrucibleSetup {s : SetupValue, bucket : b}) (params : a) (type : LLVMType) = do {
+  list <- struct_list_rec numElements init_function params;
   let arr = array list.s;
-  p <- pointer rw type;
+  p <- pointer rw (llvm_array numElements type);
   points_to p arr;
-  return {p=p, s=arr, c=list.c};
+  return {p=p, s=arr, bucket=list.bucket};
 };
 
 let {{
@@ -110,7 +117,7 @@ let {{
 
 bitvector_bc <- llvm_load_module "../obj/bitvector.bc";
 
-let bitvector_t_setup name rw n = do {
+let bitvector_t_setup (name : String) (rw : Term) (n : Int) = do {
   let nLength = {{ `(n /^ 64) : [64] }};
   nLength_max <- variable (str_concat name ".nLength_max") uint64_t;
   List <- list (str_concat name ".bits->pList") rw (eval_int {{ `(n /^ 64) : [64] }}) uint64_t;
@@ -123,7 +130,7 @@ let bitvector_t_setup name rw n = do {
   return {struct=bv_struct, nBits=nBits, nLength=nLength, nLength_max=nLength_max.c, List=List};
 };
 
-let bitvector_t name rw n = do {
+let bitvector_t (name : String) (rw : Term) (n : Int) = do {
   bv <- bitvector_t_setup name rw n;
   let (nLength, nLength_max) = (bv.nLength, bv.nLength_max);
   precond {{ nLength_max >= nLength }};
@@ -133,7 +140,7 @@ let bitvector_t name rw n = do {
   return {p=pbv, struct=bv.struct, nBits=bv.nBits, nLength=bv.nLength, nLength_max=bv.nLength_max, List=bv.List};
 };
 
-let bitvector_t' name n pbv = do {
+let bitvector_t' (name : String) (n : Int) (pbv : SetupValue) = do {
   bv <- bitvector_t_setup name CONST n;
   let (nLength, nLength_max) = (bv.nLength, bv.nLength_max);
   postcond {{ nLength_max >= nLength }};
@@ -142,47 +149,48 @@ let bitvector_t' name n pbv = do {
   return {p=pbv, struct=bv.struct, nBits=bv.nBits, nLength=bv.nLength, nLength_max=bv.nLength_max, List=bv.List};
 };
 
-let bitvector_t_struct (name, rw, n) = do {
+let bitvector_t_struct (_ : Int) (name : String, rw : Term, n : Int) = do {
   bv <- bitvector_t_setup name rw n;
   let (nLength, nLength_max) = (bv.nLength, bv.nLength_max);
   precond {{ nLength_max >= nLength }};
-  return {s=bv.struct, c=(bv.List).c};
+  return {s=bv.struct, bucket=(bv.List).c};
 };
 
-let bitvector_t_struct' (name,  n) = do {
+let bitvector_t_struct' (_ : Int) (name : String, n : Int) = do {
   bv <- bitvector_t_setup name CONST n;
   let (nLength, nLength_max) = (bv.nLength, bv.nLength_max);
   postcond {{ nLength_max >= nLength }};
-  return {s=bv.struct, c=(bv.List).c};
+  return {s=bv.struct, bucket=(bv.List).c};
 };
 
-let sequence_t name rw nLength nBits = do {
-  List <- struct_list rw nLength bitvector_t_struct ((str_concat name ".pList"), rw, nBits) (struct_t "sequence_t") : CrucibleSetup {p : SetupValue, s : SetupValue, c : Term };
+let sequence_t (name : String) (rw : Term) (nLength : Int) (nBits : Int) = do {
+  List <- struct_list rw nLength bitvector_t_struct (str_concat name ".pList", rw, nBits) (struct_t "bitvector_t");
   nLength_max <- variable (str_concat name ".nLength_max") uint64_t;
   let seq_struct = struct [ from_cryptol {{ `nLength : [64] }},
                             nLength_max.s,
-                            List.s ];
+                            List.p ];
 
-  precond {{ (`nLength_max : [64]) >= (`nLength : [64])}};
+  let nLength_max_c = nLength_max.c;
+  precond {{ (nLength_max_c : [64]) >= (`nLength : [64])}};
   pseq <- pointer rw (struct_t "sequence_t");
   points_to pseq seq_struct;
 
-  return {p=pseq, struct=seq_struct, nBits=from_cryptol {{ `nBits : [64] }}, nLength=from_cryptol {{ `nLength : [64] }}, nLength_max=nLength_max.c, List=List};
+  return {p=pseq, struct=seq_struct, nBits=from_cryptol {{ `nBits : [32] }}, nLength=from_cryptol {{ `nLength : [64] }}, nLength_max=nLength_max.c, List={s=List.s, c=list_term List.bucket}};
 };
 
-let sequence_t' name nLength nBits pseq = do {
-  List <- struct_list CONST nLength bitvector_t_struct' ((str_concat name ".pList"), nBits) (struct_t "sequence_t") : CrucibleSetup {p : SetupValue, s : SetupValue, c : Term };
+let sequence_t' (name : String) (nLength : Int) (nBits : Int) (pseq : SetupValue) = do {
+  List <- struct_list CONST nLength bitvector_t_struct' (str_concat name ".pList", nBits) (struct_t "bitvector_t");
+
   nLength_max <- variable (str_concat name ".nLength_max") uint64_t;
   let seq_struct = struct [ from_cryptol {{ `nLength : [64] }},
                             nLength_max.s,
-                            List.s ];
-
-  postcond {{ (`nLength_max : [64]) >= (`nLength : [64])}};
+                            List.p ];
+  let nLength_max_c = nLength_max.c;
+  postcond {{ (nLength_max_c : [64]) >= (`nLength : [64])}};
   points_to pseq seq_struct;
 
-  return {p=pseq, struct=seq_struct, nBits=from_cryptol {{ `nBits : [64] }}, nLength=from_cryptol {{ `nLength : [64] }}, nLength_max=nLength_max.c, List=List};
+  return {p=pseq, struct=seq_struct, nBits=from_cryptol {{ `nBits : [32] }}, nLength=from_cryptol {{ `nLength : [64] }}, nLength_max=nLength_max.c, List={s=List.s, c=list_term List.bucket}};
 };
-
 
 let nBits = 200;
 let nBits2 = 137;
@@ -468,7 +476,7 @@ let bitvector_t_concat_spec (nx : Int) (ny : Int) = do {
 };
 
 bitvector_t_concat_result <-
-  bv_verify "bitvector_t_concat" [] (bitvector_t_concat_spec nBits nBits2);
+  bv_verify "bitvector_t_concat" [] (bitvector_t_concat_spec 64 64);
 
 
 //void bitvector_t_negateUpdate(bitvector_t *bv)
@@ -602,22 +610,45 @@ bitvector_t_slice_result <-
 
 //sequence_t *bitvector_t_split(bitvector_t *bv, uint32_t parts)
 let bitvector_t_split_spec (n : Int) (parts : Int) = do {
-  bv <- bitvector_t "bv" CONST n;
+  bv <- bitvector_t "bv" WRITE n;
 
   execute [bv.p, from_cryptol {{ `parts : [32] }}];
 
   pseq <- pointer CONST (struct_t "sequence_t");
-  seq <- sequence_t' "sequence" parts n pseq;
+//  seq <- sequence_t' "sequence" parts n pseq;
 
-//  let List_c = (seq.List).c;
+//  let List_seq = (seq.List).c;
 //  let List_bv = (bv.List).c;
+
+//  postcond {{ split`{parts=parts} (from_list`{b=n} List_bv) == [ from_list`{b=n/parts} List_seqi | List_seqi <- List_seq ] }};
 
   returns pseq;
 };
 
 bitvector_t_split_result <-
-  bv_verify "bitvector_t_split" [] (bitvector_t_split_spec 20 2);
+  bv_verify "bitvector_t_split" [] (bitvector_t_split_spec 128 2);
   
+
+//bitvector_t *sequence_t_join(sequence_t *sequence)
+let sequence_t_join_spec (n : Int) (parts : Int) = do {
+  seq <- sequence_t "seq" CONST parts n;
+
+  execute [seq.p];
+
+  pbv <- pointer CONST (struct_t "bitvector_t");
+  bv <- bitvector_t' "bv" (eval_int {{ (`n : [32]) * `parts }}) pbv;
+  let List_bv = (bv.List).c;
+  let List_seq = (seq.List).c;
+  
+  postcond {{ join [ from_list`{b=n} List_seqi | List_seqi <- List_seq] == (from_list`{b=n*parts} List_bv) }};
+
+  returns pbv;
+};
+
+sequence_t_join_result <-
+  bv_verify "sequence_t_join" [] (sequence_t_join_spec 64 2);
+
+
 
 let bitvector_t_xorUpdate_spec (n : Int) = do {
   (px, x_nBits, x_nLength, x_nLength_max, x_List, x_pList) <- bitvector_t n "x";
