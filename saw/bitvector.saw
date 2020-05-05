@@ -1,92 +1,4 @@
-let CONST = {{ False }};
-let WRITE = {{ True }};
-
-let points_to = crucible_points_to;
-let precond = crucible_precond;
-let from_cryptol = crucible_term;
-let execute = crucible_execute_func;
-let postcond = crucible_postcond;
-let returns = crucible_return;
-let struct = crucible_struct;
-let array = crucible_array;
-let pointer rw type = if (eval_bool {{ rw == WRITE }})
-                      then crucible_alloc type
-                      else crucible_alloc_readonly type;
-
-let uint64_t = llvm_int 64;
-let uint32_t = llvm_int 32;
-let uint16_t = llvm_int 16;
-let uint8_t = llvm_int 8;
-let struct_t struct_name = llvm_type (str_concat "%struct." struct_name);
-
-let variable (name : String) (type : LLVMType) = do {
-  cryptol_var <- crucible_fresh_var name type;
-  return {s=from_cryptol cryptol_var, c=cryptol_var};
-};
-
-let alloc (name : String) (rw : Term) (type : LLVMType) = do {
-  p <- pointer rw type;
-  v <- variable name type;
-  points_to p v.s;
-  return {p=p, s=v.s, c=v.c};
-};
-
-let list (name : String) (rw : Term) (size : Int) (basetype : LLVMType) = do {
-  let type = llvm_array size basetype;
-  value <- alloc name rw type;
-  return {p=value.p, s=value.s, c=value.c};
-};
-
-//Here the pointer points to a sting of size `size+1` that is NULL
-//terminated. The Cryptol value does not have the NULL at the end of
-//the string.
-let string_t (string_name : String) (rw : Term) (size : Int) = do {
-  string <- crucible_fresh_var string_name (llvm_array size uint8_t);
-  pstring <- pointer rw (llvm_array (eval_int {{ `size + 1 : [64] }}) uint8_t);
-  points_to pstring (from_cryptol {{ string # [0] }});
-  return {p=pstring, s=from_cryptol string, c=string};
-};
-
-let string_t' (string_name : String) (size : Int) = do {
-  string <- list "string" CONST (eval_int {{ `(size+1) : [64] }}) uint8_t;
-  let s = string.c;
-  postcond {{ s@(`size : [64]) == 0 }};
-  return {p=string.p, s=from_cryptol string.c, c=string.c};
-};
-
-let error = do {
-  crucible_precond {{ True }};
-  crucible_postcond {{ True }};
-  return {{ True }};
-};
-
-let noerror = do {
-  return {{ True }};
-};
-
-let struct_list_empty = do {
-  return {s=[] : [SetupValue], bucket=[] : [b]} : CrucibleSetup {s : [SetupValue], bucket : [b]};
-};
-
-rec struct_list_rec (numElements : Int) (init_function : Int -> a -> CrucibleSetup {s : SetupValue, bucket : b}) (params : a) = do {
-  err <- if (eval_bool {{ (`numElements : [32]) == 0 }}) then error else noerror; //numElements must be greater than 0
-  element <- init_function (eval_int {{ (`numElements : [32]) - 1 }}) params;
-  rest <- if (eval_bool {{ (`numElements : [32]) == 1 }}) then struct_list_empty
-          else struct_list_rec (eval_int {{ (`numElements : [32]) - 1 }}) init_function params;
-
-  let ret_s = (concat rest.s [element.s]);
-  let ret_bucket = (concat rest.bucket [element.bucket]);
-
-  return {s=ret_s, bucket=ret_bucket};
-};
-
-let struct_list (rw : Term) (numElements : Int) (init_function : Int -> a -> CrucibleSetup {s : SetupValue, bucket : b}) (params : a) (type : LLVMType) = do {
-  list <- struct_list_rec numElements init_function params;
-  let arr = array list.s;
-  p <- pointer rw (llvm_array numElements type);
-  points_to p arr;
-  return {p=p, s=arr, bucket=list.bucket};
-};
+include "llvm.saw";
 
 let {{
   hexstring_to_bv : {a} (fin a) => [a][8] -> [a*4]
@@ -120,14 +32,14 @@ bitvector_bc <- llvm_load_module "../obj/bitvector.bc";
 let bitvector_t_setup (name : String) (rw : Term) (n : Int) = do {
   let nLength = {{ `(n /^ 64) : [64] }};
   nLength_max <- variable (str_concat name ".nLength_max") uint64_t;
-  List <- list (str_concat name ".bits->pList") rw (eval_int {{ `(n /^ 64) : [64] }}) uint64_t;
+  List <- alloc (str_concat name ".bits->pList") rw (llvm_array (eval_int {{ `(n /^ 64) : [64] }}) uint64_t);
   let nBits = {{ `n : [32] }};
   let bv_struct = (struct [from_cryptol nBits,
                            struct [from_cryptol nLength,
                                    nLength_max.s,
                                    List.p]]);
 
-  return {struct=bv_struct, nBits=nBits, nLength=nLength, nLength_max=nLength_max.c, List=List};
+  return {struct=bv_struct, nBits=nBits, nLength=nLength, nLength_max=nLength_max.t, List=List};
 };
 
 let bitvector_t (name : String) (rw : Term) (n : Int) = do {
@@ -153,43 +65,43 @@ let bitvector_t_struct (_ : Int) (name : String, rw : Term, n : Int) = do {
   bv <- bitvector_t_setup name rw n;
   let (nLength, nLength_max) = (bv.nLength, bv.nLength_max);
   precond {{ nLength_max >= nLength }};
-  return {s=bv.struct, bucket=(bv.List).c};
+  return {s=bv.struct, bucket=(bv.List).t};
 };
 
 let bitvector_t_struct' (_ : Int) (name : String, n : Int) = do {
   bv <- bitvector_t_setup name CONST n;
   let (nLength, nLength_max) = (bv.nLength, bv.nLength_max);
   postcond {{ nLength_max >= nLength }};
-  return {s=bv.struct, bucket=(bv.List).c};
+  return {s=bv.struct, bucket=(bv.List).t};
 };
 
 let sequence_t (name : String) (rw : Term) (nLength : Int) (nBits : Int) = do {
-  List <- struct_list rw nLength bitvector_t_struct (str_concat name ".pList", rw, nBits) (struct_t "bitvector_t");
+  List <- struct_array rw nLength bitvector_t_struct (str_concat name ".pList", rw, nBits) (struct_t "bitvector_t");
   nLength_max <- variable (str_concat name ".nLength_max") uint64_t;
   let seq_struct = struct [ from_cryptol {{ `nLength : [64] }},
                             nLength_max.s,
                             List.p ];
 
-  let nLength_max_c = nLength_max.c;
+  let nLength_max_c = nLength_max.t;
   precond {{ (nLength_max_c : [64]) >= (`nLength : [64])}};
   pseq <- pointer rw (struct_t "sequence_t");
   points_to pseq seq_struct;
 
-  return {p=pseq, struct=seq_struct, nBits=from_cryptol {{ `nBits : [32] }}, nLength=from_cryptol {{ `nLength : [64] }}, nLength_max=nLength_max.c, List={s=List.s, c=list_term List.bucket}};
+  return {p=pseq, struct=seq_struct, nBits=from_cryptol {{ `nBits : [32] }}, nLength=from_cryptol {{ `nLength : [64] }}, nLength_max=nLength_max.t, List={s=List.s, t=list_term List.bucket}};
 };
 
 let sequence_t' (name : String) (nLength : Int) (nBits : Int) (pseq : SetupValue) = do {
-  List <- struct_list CONST nLength bitvector_t_struct' (str_concat name ".pList", nBits) (struct_t "bitvector_t");
+  List <- struct_array CONST nLength bitvector_t_struct' (str_concat name ".pList", nBits) (struct_t "bitvector_t");
 
   nLength_max <- variable (str_concat name ".nLength_max") uint64_t;
   let seq_struct = struct [ from_cryptol {{ `nLength : [64] }},
                             nLength_max.s,
                             List.p ];
-  let nLength_max_c = nLength_max.c;
+  let nLength_max_c = nLength_max.t;
   postcond {{ (nLength_max_c : [64]) >= (`nLength : [64])}};
   points_to pseq seq_struct;
 
-  return {p=pseq, struct=seq_struct, nBits=from_cryptol {{ `nBits : [32] }}, nLength=from_cryptol {{ `nLength : [64] }}, nLength_max=nLength_max.c, List={s=List.s, c=list_term List.bucket}};
+  return {p=pseq, struct=seq_struct, nBits=from_cryptol {{ `nBits : [32] }}, nLength=from_cryptol {{ `nLength : [64] }}, nLength_max=nLength_max.t, List={s=List.s, t=list_term List.bucket}};
 };
 
 let nBits = 200;
@@ -213,7 +125,7 @@ let bitvector_t_zeroize_spec (n : Int) = do {
 
   bv' <- bitvector_t' "bv'" n bv.p;
 
-  let List' = (bv'.List).c;
+  let List' = (bv'.List).t;
   postcond {{ List' == (zero : [n /^ 64][64]) }};
 };
 
@@ -228,7 +140,7 @@ let bitvector_t_alloc_spec (nBits : Int) = do {
   pbv <- pointer CONST (struct_t "bitvector_t");
   bv' <- bitvector_t' "bv'" nBits pbv;
 
-  let List' = (bv'.List).c;
+  let List' = (bv'.List).t;
   postcond {{ List' == (zero : [nBits /^ 64][64]) }};
 
   returns pbv;
@@ -246,7 +158,7 @@ let bitvector_t_copyUpdate_spec (n : Int) = do {
 
   dst' <- bitvector_t' "dst'" n dst.p;
 
-  let (s_List, d_List') = ((src.List).c, (dst'.List).c);
+  let (s_List, d_List') = ((src.List).t, (dst'.List).t);
   postcond {{ s_List == d_List' }};
 };
 
@@ -262,7 +174,7 @@ let bitvector_t_copy_spec (n : Int) = do {
 
   pret <- pointer CONST (struct_t "bitvector_t");
   ret <- bitvector_t' "ret" n pret;
-  let (List, ret_List) = ((bv.List).c, (ret.List).c);
+  let (List, ret_List) = ((bv.List).t, (ret.List).t);
   postcond {{ List == ret_List }};
   returns pret;
 };
@@ -279,7 +191,7 @@ let bitvector_t_cleanHighBits_spec (n : Int) = do {
 
   bv' <- bitvector_t' "bv'" n bv.p;
 
-  let (List, List') = ((bv.List).c, (bv'.List).c);
+  let (List, List') = ((bv.List).t, (bv'.List).t);
   postcond {{ (from_list List : [n]) == from_list List' }};
 };
 
@@ -297,7 +209,7 @@ let bitvector_t_widenUpdate_spec (n : Int) (nBitsToAdd : Int) = do {
 
   bv' <- bitvector_t' "bv'" n' bv.p;
 
-  let (List, List') = ((bv.List).c, (bv'.List).c);
+  let (List, List') = ((bv.List).t, (bv'.List).t);
   postcond {{ (0 # (from_list`{b=n} List)) == (from_list`{b=n'} List') }};
 };
 
@@ -315,7 +227,7 @@ let bitvector_t_widen_spec (n : Int) (nBitsToAdd : Int) = do {
   pret <- pointer CONST (struct_t "bitvector_t");
   ret <- bitvector_t' "ret" n' pret;
 
-  let (List, ret_List) = ((bv.List).c, (ret.List).c);
+  let (List, ret_List) = ((bv.List).t, (ret.List).t);
   postcond {{ (0 # (from_list`{b=n} List)) == (from_list`{b=n'} ret_List) }};
   returns pret;
 };
@@ -328,7 +240,7 @@ bitvector_t_widen_result <-
 let bitvector_t_fromHexString_spec (n : Int) = do {
   string <- string_t "string" CONST n;
 
-  let s = string.c;
+  let s = string.t;
   precond {{ [ (c >= 'a' /\ c <= 'f') \/
                (c >= 'A' /\ c <= 'F') \/
                (c >= '0' /\ c <= '9')
@@ -339,7 +251,7 @@ let bitvector_t_fromHexString_spec (n : Int) = do {
   pbv <- pointer CONST (struct_t "bitvector_t");
   bv' <- bitvector_t' "bv'" (eval_int {{ `(n*4) : [64] }}) pbv;
 
-  let List' = (bv'.List).c;
+  let List' = (bv'.List).t;
   postcond {{ hexstring_to_bv s == from_list List' }};
 
   returns pbv;
@@ -357,7 +269,7 @@ let bitvector_t_toHexString_spec (n : Int) = do {
 
   string <- string_t' "string" n;
 
-  let (s, List) = (string.c, (bv.List).c);
+  let (s, List) = (string.t, (bv.List).t);
   postcond {{ bv_to_hexstring`{n} (from_list List) == take s }};
 
   returns string.p;
@@ -377,7 +289,7 @@ let bitvector_t_dropUpdate_spec (n : Int) (nBitsToDrop : Int) = do {
 
   bv' <- bitvector_t' "bv'" n' bv.p;
 
-  let (List, List') = ((bv.List).c, (bv'.List).c);
+  let (List, List') = ((bv.List).t, (bv'.List).t);
   postcond {{ drop`{nBitsToDrop} (from_list`{b=n} List) == (from_list`{b=n'} List') }};
 };
 
@@ -406,7 +318,7 @@ let bitvector_t_drop_spec (n : Int) (nBitsToDrop : Int) = do {
   pret <- pointer CONST (struct_t "bitvector_t");
   ret <- bitvector_t' "ret" n' pret;
 
-  let (List, ret_List) = ((bv.List).c, (ret.List).c);
+  let (List, ret_List) = ((bv.List).t, (ret.List).t);
   postcond {{ drop`{nBitsToDrop} (from_list`{b=n} List) == (from_list`{b=n'} ret_List) }};
 
   returns pret;
@@ -418,7 +330,7 @@ bitvector_t_drop_result <-
 
 //void bitvector_t_from_bytes(bitvector_t *bv, uint8_t *bytes, uint32_t nBytes)
 let bitvector_t_from_bytes_spec (n : Int) (nBytes : Int) = do {
-  bytes <- list "bytes" CONST nBytes uint8_t;
+  bytes <- alloc "bytes" CONST (llvm_array nBytes uint8_t);
 
   execute [bytes.p, from_cryptol {{ `nBytes : [32] }}];
 
@@ -427,8 +339,8 @@ let bitvector_t_from_bytes_spec (n : Int) (nBytes : Int) = do {
   pbv <- pointer CONST (struct_t "bitvector_t");
   bv' <- bitvector_t' "bv'" n' pbv;
 
-  let List = (bv'.List).c;
-  let b = bytes.c;
+  let List = (bv'.List).t;
+  let b = bytes.t;
   postcond {{ from_list`{b=n'} List == join b }};
 
   returns pbv;
@@ -444,10 +356,10 @@ let bitvector_t_to_bytes_spec (nBytes : Int) = do {
   
   execute [bv.p];
 
-  bytes <- list "bytes" CONST nBytes uint8_t;
+  bytes <- alloc "bytes" CONST (llvm_array nBytes uint8_t);
 
-  let List = (bv.List).c;
-  let b = bytes.c;
+  let List = (bv.List).t;
+  let b = bytes.t;
   postcond {{ from_list`{b=nBytes*8} List == join b }};
 
   returns bytes.p;
@@ -469,7 +381,7 @@ let bitvector_t_concat_spec (nx : Int) (ny : Int) = do {
   pret <- pointer CONST (struct_t "bitvector_t");
   ret <- bitvector_t' "ret" n' pret;
 
-  let (x_List, y_List, ret_List) = ((x.List).c, (y.List).c, (ret.List).c);
+  let (x_List, y_List, ret_List) = ((x.List).t, (y.List).t, (ret.List).t);
   postcond {{ (from_list`{b=nx} x_List) # (from_list`{b=ny} y_List) == (from_list`{b=n'} ret_List) }};
 
   returns pret;
@@ -486,7 +398,7 @@ let bitvector_t_negateUpdate_spec (n : Int) = do {
   execute [bv.p];
 
   bv' <- bitvector_t' "bv'" n bv.p;
-  let (List, List') = ((bv.List).c, (bv'.List).c);
+  let (List, List') = ((bv.List).t, (bv'.List).t);
 
   postcond {{ (from_list`{b=n} List) == ~(from_list`{b=n} List') }};
 };
@@ -504,7 +416,7 @@ let bitvector_t_negate_spec (n : Int) = do {
   pret <- pointer CONST (struct_t "bitvector_t");
   ret <- bitvector_t' "ret" n pret;
 
-  let (List, ret_List) = ((bv.List).c, (ret.List).c);
+  let (List, ret_List) = ((bv.List).t, (ret.List).t);
   postcond {{ (from_list`{b=n} List) == ~(from_list`{b=n} ret_List) }};
 
   returns pret;
@@ -519,12 +431,12 @@ let bitvector_t_getBit_spec (n : Int) = do {
   bv <- bitvector_t "bv" CONST n;
 
   index <- variable "index" uint32_t;
-  let index_c = index.c;
+  let index_c = index.t;
   precond {{ index_c < `n }};
 
   execute [bv.p, index.s];
 
-  let List = (bv.List).c;
+  let List = (bv.List).t;
   returns (from_cryptol {{ 0#[(from_list`{b=n} List)!index_c] : [8] }});
 };
 
@@ -537,16 +449,16 @@ let bitvector_t_setBit_spec (n : Int) = do {
   bv <- bitvector_t "bv" WRITE n;
 
   index <- variable "index" uint32_t;
-  let index_c = index.c;
+  let index_c = index.t;
   precond {{ index_c < `n }};
 
   value <- variable "value" uint8_t;
-  let value_c = value.c;
+  let value_c = value.t;
 
   execute [bv.p, index.s, value.s];
 
   bv' <- bitvector_t' "bv'" n bv.p;
-  let (List, List') = ((bv.List).c, (bv'.List).c);    
+  let (List, List') = ((bv.List).t, (bv'.List).t);    
 
   postcond {{ updateEnd (from_list`{b=n} List) index_c (value_c!=0) == from_list`{b=n} List' }};
 };
@@ -560,7 +472,7 @@ let bitvector_t_popcount_spec (n : Int) = do {
   bv <- bitvector_t "bv" WRITE n;
   execute [bv.p];
 
-  let List = (bv.List).c;
+  let List = (bv.List).t;
 
   returns (from_cryptol {{ (popcount (from_list`{b=n} List)) : [32] }});
 };
@@ -577,7 +489,7 @@ let bitvector_t_sliceUpdate_spec (n : Int) (start : Int) (length : Int) = do {
   execute [slice.p, bv.p, from_cryptol {{ `start : [32] }}, from_cryptol {{ `length : [32] }}];
 
   slice' <- bitvector_t' "slice'" length slice.p;
-  let (List, s_List') = ((bv.List).c, (slice'.List).c);
+  let (List, s_List') = ((bv.List).t, (slice'.List).t);
 
   postcond {{ from_list`{b=length} s_List' == (from_list`{b=n} List)!!([start+length-1, start+length-2 .. start]:[length][32]) }};
 };
@@ -594,7 +506,7 @@ let bitvector_t_slice_spec (n : Int) (start : Int) (length : Int) = do {
 
   pslice <- pointer CONST (struct_t "bitvector_t");
   slice' <- bitvector_t' "slice'" length pslice;
-  let (List, s_List') = ((bv.List).c, (slice'.List).c);
+  let (List, s_List') = ((bv.List).t, (slice'.List).t);
 
   postcond {{ from_list`{b=length} s_List' == (from_list`{b=n} List)!!([start+length-1, start+length-2 .. start]:[length][32]) }};
 
@@ -614,8 +526,8 @@ let bitvector_t_split_spec (n : Int) (parts : Int) = do {
   pseq <- pointer CONST (struct_t "sequence_t");
 //  seq <- sequence_t' "sequence" parts n pseq;
 
-//  let List_seq = (seq.List).c;
-//  let List_bv = (bv.List).c;
+//  let List_seq = (seq.List).t;
+//  let List_bv = (bv.List).t;
 
 //  postcond {{ split`{parts=parts} (from_list`{b=n} List_bv) == [ from_list`{b=n/parts} List_seqi | List_seqi <- List_seq ] }};
 
@@ -634,8 +546,8 @@ let sequence_t_join_spec (n : Int) (parts : Int) = do {
 
   pbv <- pointer CONST (struct_t "bitvector_t");
   bv <- bitvector_t' "bv" (eval_int {{ (`n : [32]) * `parts }}) pbv;
-  let List_bv = (bv.List).c;
-  let List_seq = (seq.List).c;
+  let List_bv = (bv.List).t;
+  let List_seq = (seq.List).t;
   
   postcond {{ join [ from_list`{b=n} List_seqi | List_seqi <- List_seq] == (from_list`{b=n*parts} List_bv) }};
 
@@ -653,7 +565,7 @@ let bitvector_t_equal_spec (n : Int) = do {
 
   execute [x.p, y.p];
 
-  let (x_List, y_List) = ((x.List).c, (y.List).c);
+  let (x_List, y_List) = ((x.List).t, (y.List).t);
 
   returns (from_cryptol {{ if (from_list`{b=n} x_List) == (from_list`{b=n} y_List) then 1 else 0 : [8]}} );
 };
@@ -670,7 +582,7 @@ let bitvector_t_xorUpdate_spec (n : Int) = do {
   execute [x.p, y.p];
 
   x' <- bitvector_t' "bv" n x.p;
-  let (x_List', x_List, y_List) = ((x'.List).c, (x.List).c, (y.List).c);
+  let (x_List', x_List, y_List) = ((x'.List).t, (x.List).t, (y.List).t);
 
   postcond {{ (from_list`{b=n} x_List') == ((from_list`{b=n} x_List) ^ (from_list`{b=n} y_List)) }};
 };
@@ -688,7 +600,7 @@ let bitvector_t_xor_spec (n : Int) = do {
 
   retp <- pointer CONST (struct_t "bitvector_t");
   ret <- bitvector_t' "bv" n retp;
-  let (ret_List, x_List, y_List) = ((ret.List).c, (x.List).c, (y.List).c);
+  let (ret_List, x_List, y_List) = ((ret.List).t, (x.List).t, (y.List).t);
 
   postcond {{ (from_list`{b=n} ret_List) == ((from_list`{b=n} x_List) ^ (from_list`{b=n} y_List)) }};
 
@@ -707,7 +619,7 @@ let bitvector_t_orUpdate_spec (n : Int) = do {
   execute [x.p, y.p];
 
   x' <- bitvector_t' "bv" n x.p;
-  let (x_List', x_List, y_List) = ((x'.List).c, (x.List).c, (y.List).c);
+  let (x_List', x_List, y_List) = ((x'.List).t, (x.List).t, (y.List).t);
 
   postcond {{ (from_list`{b=n} x_List') == ((from_list`{b=n} x_List) || (from_list`{b=n} y_List)) }};
 };
@@ -725,7 +637,7 @@ let bitvector_t_or_spec (n : Int) = do {
 
   retp <- pointer CONST (struct_t "bitvector_t");
   ret <- bitvector_t' "bv" n retp;
-  let (ret_List, x_List, y_List) = ((ret.List).c, (x.List).c, (y.List).c);
+  let (ret_List, x_List, y_List) = ((ret.List).t, (x.List).t, (y.List).t);
 
   postcond {{ (from_list`{b=n} ret_List) == ((from_list`{b=n} x_List) || (from_list`{b=n} y_List)) }};
 
@@ -744,7 +656,7 @@ let bitvector_t_andUpdate_spec (n : Int) = do {
   execute [x.p, y.p];
 
   x' <- bitvector_t' "bv" n x.p;
-  let (x_List', x_List, y_List) = ((x'.List).c, (x.List).c, (y.List).c);
+  let (x_List', x_List, y_List) = ((x'.List).t, (x.List).t, (y.List).t);
 
   postcond {{ (from_list`{b=n} x_List') == ((from_list`{b=n} x_List) && (from_list`{b=n} y_List)) }};
 };
@@ -762,7 +674,7 @@ let bitvector_t_and_spec (n : Int) = do {
 
   retp <- pointer CONST (struct_t "bitvector_t");
   ret <- bitvector_t' "bv" n retp;
-  let (ret_List, x_List, y_List) = ((ret.List).c, (x.List).c, (y.List).c);
+  let (ret_List, x_List, y_List) = ((ret.List).t, (x.List).t, (y.List).t);
 
   postcond {{ (from_list`{b=n} ret_List) == ((from_list`{b=n} x_List) && (from_list`{b=n} y_List)) }};
 
