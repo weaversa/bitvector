@@ -34,6 +34,7 @@ jobs:
         - yices-smt2 --version
         - mkdir cvc4_downloaded
         - curl -fsSL https://github.com/CVC4/CVC4/releases/download/1.7/cvc4-1.7-x86_64-linux-opt -o cvc4_downloaded/cvc4
+        - chmod a+x cvc4_downloaded/cvc4
         - export PATH=$PATH:$(pwd)/cvc4_downloaded
         - cvc4 --version
       compiler: clang
