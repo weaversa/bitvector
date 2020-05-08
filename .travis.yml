@@ -13,6 +13,9 @@ jobs:
         - z3 --version
         - brew install SRI-CSL/sri-csl/yices2
         - yices-smt2 --version
+        - brew tap cvc4/cvc4
+        - brew install cvc4/cvc4/cvc4
+        - cvc4 --version
       compiler: clang
       os: osx
     - 
@@ -29,6 +32,10 @@ jobs:
         - sudo apt-get update
         - sudo apt-get install -y yices2
         - yices-smt2 --version
+        - mkdir cvc4_downloaded
+        - curl -fsSL https://github.com/CVC4/CVC4/releases/download/1.7/cvc4-1.7-x86_64-linux-opt -o cvc4_downloaded/cvc4
+        - export PATH=$PATH:$(pwd)/cvc4_downloaded
+        - cvc4 --version
       compiler: clang
       dist: bionic
       os: linux
