@@ -13,9 +13,10 @@ jobs:
         - z3 --version
         - brew install SRI-CSL/sri-csl/yices2
         - yices-smt2 --version
-        - brew tap cvc4/cvc4
-        - brew install cvc4/cvc4/cvc4
-        - cvc4 --version
+# I don't know how to get cvc4 to install on osx. The following (as suggested on the cvc4 website) times out after 10 minutes.
+#        - brew tap cvc4/cvc4
+#        - brew install cvc4/cvc4/cvc4
+#        - cvc4 --version
       compiler: clang
       os: osx
     - 
