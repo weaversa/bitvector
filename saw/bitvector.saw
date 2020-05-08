@@ -91,11 +91,11 @@ let bitvector_t_struct (_ : Int) (rw : Term, n : Int, name : String) = do {
 let bitvector_t_struct' (_ : Int) (n : Int, name : String) = do {
   bv <- bitvector_t_setup CONST n name;
   let bvt = bv.t;
-  postcond {{ bvt.nLength_max >= bvt.nLength }};
+  postcond {{ bvt.bits.nLength_max >= bvt.bits.nLength }};
   return {s=bv.s, bucket=bv.t};
 };
 
-let sequence_t_setup (rw : Term) (nLength : Int) (nBits : Int) (name : String) = do {
+let sequence_t (rw : Term) (nLength : Int) (nBits : Int) (name : String) = do {
   let nLengtht = {{ `nLength : [64] }};
   nLength_max <- variable uint64_t (str_concat name ".nLength_max") FRESH;
   List <- new_init rw nLength bitvector_t_struct (rw, nBits, str_concat name ".pList") (struct_t "bitvector_t");
@@ -112,24 +112,33 @@ let sequence_t_setup (rw : Term) (nLength : Int) (nBits : Int) (name : String) =
 
   precond {{ vt.nLength_max >= vt.nLength }};
 
-  return {p=v.p, s=v.s, t=vt};
+  vp <- pointer rw (struct_t "sequence_t");
+  points_to vp v.s;
+  
+  return {p=vp, s=v.s, t=vt};
 };
 
-let sequence_t (rw : Term) (nLength : Int) (nBits : Int) (name : String) = do {
-  seq <- sequence_t_setup rw nLength nBits name;
-  let seqt = seq.t;
-  precond {{ seqt.nLength_max >= seqt.nLength }};
-  seqp <- pointer rw (struct_t "sequence_t");
-  points_to seqp seq.s;
-  return {p=seqp, s=seq.s, t=seq.t};
-};
 
-let sequence_t' (nLength : Int) (nBits : Int) (name : String) (seqp : SetupValue) = do {
-  seq <- sequence_t_setup CONST nLength nBits name;
-  let seqt = seq.t;
-  postcond {{ seqt.nLength_max >= seqt.nLength }};
-  points_to seqp seq.s;
-  return {p=seqp, s=seq.s, t=seq.t};
+let sequence_t' (nLength : Int) (nBits : Int) (name : String) (vp : SetupValue) = do {
+  let nLengtht = {{ `nLength : [64] }};
+  nLength_max <- variable uint64_t (str_concat name ".nLength_max") FRESH;
+  List <- new_init CONST nLength bitvector_t_struct' (nBits, str_concat name ".pList") (struct_t "bitvector_t");
+  v <- struct CONST "sequence_t"
+              [ from_cryptol nLengtht,
+                nLength_max.s,
+                List.p ];
+
+  let (nLength_maxt, Listt) = (nLength_max.t, list_term List.bucket);
+
+  let vt = {{ {nLength=nLengtht,
+               nLength_max=nLength_maxt,
+               List=Listt} }};
+
+  postcond {{ vt.nLength_max >= vt.nLength }};
+
+  points_to vp v.s;
+  
+  return {p=vp, s=v.s, t=vt};
 };
 
 let nBits = 200;
@@ -550,11 +559,10 @@ let bitvector_t_split_spec (n : Int) (parts : Int) = do {
   execute [bv.p, from_cryptol {{ `parts : [32] }}];
 
   pseq <- pointer CONST (struct_t "sequence_t");
-//  seq' <- sequence_t' parts n "sequence'" pseq;
+  //seq' <- sequence_t' parts n "sequence'" pseq;
 
-//  let (bvt, seqt') = (bv.t, seq'.t);
-
-//  postcond {{ split`{parts=parts} (from_list`{b=n} bv.bits.List) == [ from_list`{b=n/parts} bvi.bits.List | bvi <- seqt'.List ] }};
+  //let (bvt, seqt') = (bv.t, seq'.t);
+  //postcond {{ split`{parts=parts} (from_list`{b=n} bv.bits.List) == [ from_list`{b=n/parts} bvi.bits.List | bvi <- seqt'.List ] }};
 
   returns pseq;
 };
