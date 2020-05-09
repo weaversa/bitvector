@@ -33,8 +33,7 @@ let uint64_t_list_setup (rw : Term) (n : Int) (name : String) = do {
   nLength <- variable uint64_t (str_concat name ".nLength") (STALE {{ `n : [64] }});
   nLength_max <- variable uint64_t (str_concat name ".nLength_max") FRESH;
   List <- alloc rw (llvm_array n uint64_t) (str_concat name ".pList") FRESH;
-  v <- struct rw "uint64_t_list"
-              [nLength.s, nLength_max.s, List.p];
+  v <- struct [nLength.s, nLength_max.s, List.p];
 
   let (nLengtht,  nLength_maxt,  Listt) =
       (nLength.t, nLength_max.t, List.t);
@@ -54,8 +53,7 @@ let bitvector_t_setup (rw : Term) (n : Int) (name : String) = do {
   let words = eval_int {{ `(n /^ 64) : [64] }};
   bits <- uint64_t_list_setup rw words (str_concat name ".bits");
 
-  v <- struct rw "bitvector_t"
-              [nBits.s, bits.s];
+  v <- struct [nBits.s, bits.s];
 
   let (nBitst, bitst) = (nBits.t, bits.t);
   let vt = {{ {nBits=nBitst, bits=bitst} }};
@@ -97,9 +95,8 @@ let bitvector_t_struct' (_ : Int) (n : Int, name : String) = do {
 let sequence_t (rw : Term) (nLength : Int) (nBits : Int) (name : String) = do {
   let nLengtht = {{ `nLength : [64] }};
   nLength_max <- variable uint64_t (str_concat name ".nLength_max") FRESH;
-  List <- new_init rw nLength bitvector_t_struct (rw, nBits, str_concat name ".pList") (struct_t "bitvector_t");
-  v <- struct rw "sequence_t"
-              [ from_cryptol nLengtht,
+  List <- array_init rw nLength (struct_t "bitvector_t") bitvector_t_struct (rw, nBits, str_concat name ".pList");
+  v <- struct [ from_cryptol nLengtht,
                 nLength_max.s,
                 List.p ];
 
@@ -121,9 +118,8 @@ let sequence_t (rw : Term) (nLength : Int) (nBits : Int) (name : String) = do {
 let sequence_t' (nLength : Int) (nBits : Int) (name : String) (vp : SetupValue) = do {
   let nLengtht = {{ `nLength : [64] }};
   nLength_max <- variable uint64_t (str_concat name ".nLength_max") FRESH;
-  List <- new_init CONST nLength bitvector_t_struct' (nBits, str_concat name ".pList") (struct_t "bitvector_t");
-  v <- struct CONST "sequence_t"
-              [ from_cryptol nLengtht,
+  List <- array_init CONST nLength (struct_t "bitvector_t") bitvector_t_struct' (nBits, str_concat name ".pList");
+  v <- struct [ from_cryptol nLengtht,
                 nLength_max.s,
                 List.p ];
 
