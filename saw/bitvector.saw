@@ -49,7 +49,6 @@ let uint64_t_list (rw : Term) (n : Int) (name : String) = do {
   return {p=vp, s=v.s, t=v.t};
 };
 
-//Should split the uint64_t_list struct out of here.
 let bitvector_t_setup (rw : Term) (n : Int) (name : String) = do {
   nBits <- variable uint32_t (str_concat name ".nBits") (STALE {{ `n : [32] }});
   let words = eval_int {{ `(n /^ 64) : [64] }};
