@@ -19,6 +19,15 @@ let points_to = crucible_points_to;
 let precond = crucible_precond;
 let from_cryptol = crucible_term;
 
+let global = crucible_global;
+let global_alloc = crucible_alloc_global;
+let global_init name = do {
+  global_alloc name;
+  points_to (global name)
+            (crucible_global_initializer name);
+};
+let element = crucible_elem;
+let equal = crucible_equal;
 let execute = crucible_execute_func;
 let postcond = crucible_postcond;
 let returns = crucible_return;
@@ -30,32 +39,32 @@ let llvm_verify module function_name overrides spec =
 // pointing to.
 let CONST  = {{ 0 : [2] }}; //Points to allocated space that is READ ONLY.
 let WRITE  = {{ 1 : [2] }}; //Points to allocated space that can be modified.
-let UNINIT = {{ 2 : [2] }}; //Pointer does not point to allocated space.
+let UNALLOC = {{ 2 : [2] }}; //Pointer does not point to allocated space.
 
 /**
  * Returns a pointer of the given type. The first argument is either
- * CONST, WRITE, or UNINT. The second argument is the type of the
+ * CONST, WRITE, or UNALLOC. The second argument is the type of the
  * value the pointer can point to.
  *
  * For example, the following creates a pointer to allocated space
  * that is read only.
  *
- *   p <- pointer CONST
+ *   p <- pointer CONST (llvm_array 4 uint32_t);
  *
  * The following creates a pointer to allocated space that can be
  * modified.
  *
- *   p <- pointer WRITE
+ *   p <- pointer WRITE (llvm_array 4 uint32_t);
  *
  *
- * The following creates a pointer that is either uninitialized or
+ * The following creates a pointer that is either unallocated or
  * NULL, i.e. that does not point to allocated space.
  *
- *   p <- pointer UNINIT
+ *   p <- pointer UNALLOC (llvm_array 4 uint32_t);
  */ 
 let pointer (rw : Term) (type : LLVMType) =
-  if (eval_bool {{ rw == 0 }}) then crucible_alloc_readonly type
-  else if (eval_bool {{ rw == 1 }}) then crucible_alloc type
+  if (eval_bool {{ rw == CONST }}) then crucible_alloc_readonly type
+  else if (eval_bool {{ rw == WRITE }}) then crucible_alloc type
   else crucible_fresh_pointer type;
 
 //Symbolic value --- for use with the `variable` function.
@@ -112,8 +121,8 @@ let variable (type : LLVMType) (name : String) (v : { fresh : Term, t : Term}) =
  */
 let alloc (rw : Term) (type : LLVMType) (name : String) (v : { fresh : Term, t : Term}) = do {
   v' <- variable type name v;
-  //This pointer cannot is not uninitialized.
-  err <- if (eval_bool {{ rw == 2 }}) then error else noerror;
+  //The UNALLOC pointer cannot point to allocated memory.
+  err <- if (eval_bool {{ rw == UNALLOC }}) then error else noerror;
   p <- pointer rw type;
   points_to p v'.s;
   return {p=p, s=v'.s, t=v'.t};
