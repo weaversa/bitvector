@@ -13,7 +13,7 @@ BITVECTORLIB = bitvector
 CC = gcc
 DBG = -g -Wall -fstack-protector-all -pedantic -Wconversion
 #OPT = -march=native -O3 -DNDEBUG -ffast-math -fomit-frame-pointer -finline-functions
-VERIFY = -O1 -g -fsanitize-trap=undefined -fsanitize=undefined
+VERIFY = -O1 -g
 INCLUDES = -Iinclude
 LIBS = -l$(BITVECTORLIB)
 LDFLAGS = -Llib
