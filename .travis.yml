@@ -3,11 +3,11 @@ jobs:
   include: 
     - 
       before_install: 
-        - wget https://saw.galois.com/builds/nightly/saw-0.4.0.99-2020-04-24-OSX-64.tar.gz
-        - tar -xzf saw-0.4.0.99-2020-04-24-OSX-64.tar.gz
-        - export PATH=$PATH:saw-0.4.0.99-2020-04-24-OSX-64/bin
+        - wget https://saw.galois.com/builds/nightly/saw-0.4.0.99-2020-05-21-OSX-64.tar.gz
+        - tar -xzf saw-0.4.0.99-2020-05-21-OSX-64.tar.gz
+        - export PATH=$PATH:saw-0.4.0.99-2020-05-21-OSX-64/bin
         - saw --version
-        - curl -fsSL https://github.com/Z3Prover/z3/releases/download/Nightly/z3-4.8.8-x64-osx-10.14.6.zip -o z3-4.8.8-x64-osx-10.14.6.zip
+        - curl -fsSL https://github.com/Z3Prover/z3/releases/download/z3-4.8.8/z3-4.8.8-x64-osx-10.14.6.zip -o z3-4.8.8-x64-osx-10.14.6.zip
         - unzip -j z3-4.8.8-x64-osx-10.14.6.zip -d z3_downloaded
         - export PATH=$PATH:$(pwd)/z3_downloaded
         - z3 --version
@@ -21,11 +21,11 @@ jobs:
       os: osx
     - 
       before_install: 
-        - wget https://saw.galois.com/builds/nightly/saw-0.4.0.99-2020-04-24-Ubuntu14.04-64.tar.gz
-        - tar -xzf saw-0.4.0.99-2020-04-24-Ubuntu14.04-64.tar.gz
-        - export PATH=saw-0.4.0.99-2020-04-24-Ubuntu14.04-64/bin:$PATH
+        - wget https://saw.galois.com/builds/nightly/saw-0.4.0.99-2020-05-21-Ubuntu14.04-64.tar.gz
+        - tar -xzf saw-0.4.0.99-2020-05-21-Ubuntu14.04-64.tar.gz
+        - export PATH=saw-0.4.0.99-2020-05-21-Ubuntu14.04-64/bin:$PATH
         - saw --version
-        - curl -fsSL https://github.com/Z3Prover/z3/releases/download/Nightly/z3-4.8.8-x64-ubuntu-16.04.zip -o z3-4.8.8-x64-ubuntu-16.04.zip
+        - curl -fsSL https://github.com/Z3Prover/z3/releases/download/z3-4.8.8/z3-4.8.8-x64-ubuntu-16.04.zip -o z3-4.8.8-x64-ubuntu-16.04.zip
         - unzip -j z3-4.8.8-x64-ubuntu-16.04.zip -d z3_downloaded
         - export PATH=$PATH:$(pwd)/z3_downloaded
         - z3 --version

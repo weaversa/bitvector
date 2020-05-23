@@ -1,4 +1,5 @@
-EXTRAS = Makefile LICENSE README.md .travis.yml saw/bitvector.saw test/test.c
+EXTRAS = Makefile LICENSE README.md .travis.yml saw/bitvector.saw	\
+saw/llvm.saw test/test.c
 
 HEADERS = include/bitvector.h
 
@@ -12,11 +13,11 @@ BITVECTORLIB = bitvector
 CC = gcc
 DBG = -g -Wall -fstack-protector-all -pedantic -Wconversion
 #OPT = -march=native -O3 -DNDEBUG -ffast-math -fomit-frame-pointer -finline-functions
-VERIFY = #-O1
+VERIFY = -O1 -g
 INCLUDES = -Iinclude
 LIBS = -l$(BITVECTORLIB)
 LDFLAGS = -Llib
-CFLAGS = -std=gnu99 $(DBG) $(OPT) $(VERIFY) $(INCLUDES)
+CFLAGS = -std=gnu99 $(DBG) $(OPT) $(INCLUDES)
 AR = ar r
 RANLIB = ranlib
 
@@ -50,7 +51,7 @@ lib/lib$(BITVECTORLIB).a: $(OBJECTS) Makefile
 $(BCOBJECTS): obj/%.bc : src/%.c Makefile
 	@echo "Compiling "$<""
 	@[ -d obj ] || mkdir -p obj
-	@clang -emit-llvm $(CFLAGS) -c $< -o $@
+	@clang -emit-llvm -std=gnu99 $(VERIFY) $(INCLUDES) -c $< -o $@
 
 test/test: test/test.c lib/lib$(BITVECTORLIB).a
 	$(CC) $(CFLAGS) $(LDFLAGS) test/test.c -o test/test $(LIBS)

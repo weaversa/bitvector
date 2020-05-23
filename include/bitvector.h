@@ -79,7 +79,9 @@ inline bitvector_t *bitvector_t_copy(bitvector_t *bv) {
 }
 
 inline void bitvector_t_cleanHighBits(bitvector_t *bv) {
-  bv->bits.pList[bv->bits.nLength-1] &= (~(uint64_t)0) >> (64 - (bv->nBits&0x3f));
+  if((bv->nBits&0x3f) != 0) {
+    bv->bits.pList[bv->bits.nLength-1] &= (~(uint64_t)0) >> (64 - (bv->nBits&0x3f));
+  }
 }
 
 inline void bitvector_t_widenUpdate(bitvector_t *bv, uint32_t nBitsToAdd) {
@@ -126,7 +128,7 @@ inline bitvector_t *bitvector_t_fromHexString(char *string) {
   bitvector_t *bv = bitvector_t_alloc(length*4);
   if(bv == NULL) return NULL;
 
-  for(i = 0; i < length; i++) {
+  for(i = 0; string[i] != 0; i++) {
     uint64_t digit = hexchar_to_digit(string[(length - i) - 1]);
     if(digit == 16) break;
     bv->bits.pList[i>>4] |= digit << ((i&0xf)*4);
@@ -154,10 +156,16 @@ inline char *bitvector_t_toHexString(bitvector_t *bv) {
 
   for(i = 0; i < length; i++) {
     char c[2];
-    snprintf(c, 2, "%" PRIx64, (bv->bits.pList[i>>4] >> ((i&0xf)*4)) & 0xf);
+    //snprintf(c, 2, "%" PRIx64, (bv->bits.pList[i>>4] >> ((i&0xf)*4)) & 0xf);
+    c[0] = (bv->bits.pList[i>>4] >> ((i&0xf)*4)) & 0xf;
+    if(c[0] >= 10) {
+      c[0] += 'a' - 10;
+    } else {
+      c[0] += '0';
+    }
     string[length-i - 1] = c[0];
   }
-
+  
   return string;
 }
 
@@ -188,42 +196,24 @@ inline bitvector_t *bitvector_t_drop(bitvector_t *bv, uint32_t nBitsToDrop) {
   return ret;
 }
 
-inline void bitvector_t_from_bytesUpdate(bitvector_t *bv, uint8_t *bytes, uint32_t nBytes) {
-  if(bv == NULL) return;
-  if(bytes == NULL) return;
-  
+inline bitvector_t *bitvector_t_from_bytes(uint8_t *bytes, uint32_t nBytes) {
+  if(bytes == NULL) return NULL;
+  bitvector_t *bv = bitvector_t_alloc(nBytes*8);
+
   if(bv->nBits < nBytes*8) {
     bitvector_t_widenUpdate(bv, (nBytes*8) - bv->nBits);
   } else if(bv->nBits > nBytes*8) {
     bitvector_t_dropUpdate(bv, bv->nBits - (nBytes*8));
   }
 
+  bitvector_t_zeroize(bv);
+  
   uint32_t i;
   for(i = 0; i < nBytes; i++) {
     bv->bits.pList[i>>3] |= ((uint64_t) bytes[nBytes-(i+1)])<<((i&0x7) * 8);
   }
-}
-
-inline bitvector_t *bitvector_t_from_bytes(uint8_t *bytes, uint32_t nBytes) {
-  if(bytes == NULL) return NULL;
-  bitvector_t *bv = bitvector_t_alloc(nBytes*8);
-  bitvector_t_from_bytesUpdate(bv, bytes, nBytes);
+  
   return bv;
-}
-
-inline void bitvector_t_to_bytesUpdate(uint8_t *bytes, bitvector_t *bv) {
-  if(bv == NULL) return;
-  if(bytes == NULL) return;
-  if(bv->nBits % 8 != 0) {
-    fprintf(stderr, "Cannot create a byte array from a bitvector_t with number of bits not a multiple of 8.\n");
-    return;
-  }
-
-  uint32_t nBytes = bv->nBits / 8;
-  uint32_t i;
-  for(i = 0; i < nBytes; i++) {
-    bytes[nBytes-(i+1)] = (uint8_t) (bv->bits.pList[i>>3]>>((i&0x7) * 8));
-  }
 }
 
 inline uint8_t *bitvector_t_to_bytes(bitvector_t *bv) {
@@ -234,7 +224,13 @@ inline uint8_t *bitvector_t_to_bytes(bitvector_t *bv) {
   }
   
   uint8_t *bytes = (uint8_t *)malloc((bv->nBits / 8) * sizeof(uint8_t));
-  bitvector_t_to_bytesUpdate(bytes, bv);
+
+  uint32_t nBytes = bv->nBits / 8;
+  uint32_t i;
+  for(i = 0; i < nBytes; i++) {
+    bytes[nBytes-(i+1)] = (uint8_t) (bv->bits.pList[i>>3]>>((i&0x7) * 8));
+  }
+  
   return bytes;
 }
 
@@ -249,29 +245,9 @@ inline bitvector_t *bitvector_t_concat(bitvector_t *x, bitvector_t *y) {
 
   for(i = start; i < start + length; i++) {
     ret->bits.pList[i] |= x->bits.pList[i-start] << (y->nBits&0x3f);
-    if(i + 1 < ret->bits.nLength) {
+    if((i + 1 < ret->bits.nLength) && ((y->nBits&0x3f) != 0)) {
       ret->bits.pList[i+1] = x->bits.pList[i-start] >> (64 - (y->nBits&0x3f));
     }
-  }
-
-  return ret;
-}
-
-inline bitvector_t *sequence_t_join(sequence_t *sequence) {
-  if(sequence == NULL) return NULL;
-
-  uint64_t parts = sequence->nLength;
-
-  if(parts == 0) return NULL;
-
-  bitvector_t *ret = bitvector_t_copy(&sequence->pList[0]);
-  if(parts == 1) return ret;
-  
-  uint32_t i;
-  for(i = 1; i < parts; i++) {
-    bitvector_t *tmp = bitvector_t_concat(ret, &sequence->pList[i]);
-    bitvector_t_free(ret);
-    ret = tmp;
   }
 
   return ret;
@@ -342,7 +318,7 @@ inline void bitvector_t_sliceUpdate(bitvector_t *slice, bitvector_t *bv, uint32_
   }
   
   uint32_t startW  = start >> 6;
-  uint32_t lengthW = (length >> 6) + 1;
+  uint32_t lengthW = (length+63) >> 6;
   uint32_t i;
   for(i = 0; i < lengthW; i++) {
     slice->bits.pList[i] = bv->bits.pList[startW + i] >> (start&0x3f);
@@ -375,6 +351,26 @@ inline sequence_t *bitvector_t_split(bitvector_t *bv, uint32_t parts) {
   }
 
   return sequence;
+}
+
+inline bitvector_t *sequence_t_join(sequence_t *sequence) {
+  if(sequence == NULL) return NULL;
+
+  uint64_t parts = sequence->nLength;
+
+  if(parts == 0) return NULL;
+
+  bitvector_t *ret = bitvector_t_copy(&sequence->pList[0]);
+  if(parts == 1) return ret;
+  
+  uint32_t i;
+  for(i = 1; i < parts; i++) {
+    bitvector_t *tmp = bitvector_t_concat(ret, &sequence->pList[i]);
+    bitvector_t_free(ret);
+    ret = tmp;
+  }
+
+  return ret;
 }
 
 inline uint8_t bitvector_t_equal(bitvector_t *x, bitvector_t *y) {

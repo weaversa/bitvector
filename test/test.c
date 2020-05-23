@@ -65,17 +65,19 @@ int main() {
 
   bitvector_t *slice2 = bitvector_t_slice(z, 43, 24);
 
-  fprintf(stderr, "z!![??] = %s\n", tmp=bitvector_t_toHexString(slice2)); free(tmp);
+  fprintf(stderr, "z!![??] = %s\n", tmp=bitvector_t_toHexString(slice)); free(tmp);
 
-  uint8_t *slice2_clone = bitvector_t_to_bytes(slice2);
+  fprintf(stderr, "z!![??] = %s\n", tmp=bitvector_t_toHexString(x)); free(tmp);
+  
+  uint8_t *x_clone = bitvector_t_to_bytes(x);
   fprintf(stderr, "z!![??] = ");
   uint32_t i;  
-  for(i = 0; i < slice2->nBits/8; i++) {
-    fprintf(stderr, "%.2x", slice2_clone[i]);
+  for(i = 0; i < x->nBits/8; i++) {
+    fprintf(stderr, "%.2x", x_clone[i]);
   }
   fprintf(stderr, "\n");
   
-  bitvector_t *bucket = bitvector_t_from_bytes(slice2_clone, slice2->nBits/8);
+  bitvector_t *bucket = bitvector_t_from_bytes(x_clone, x->nBits/8);
   fprintf(stderr, "bucket = %s\n", tmp=bitvector_t_toHexString(bucket)); free(tmp);
   
 
@@ -102,7 +104,7 @@ int main() {
   bitvector_t_free(z2);
   bitvector_t_free(slice);
   bitvector_t_free(slice2);
-  free(slice2_clone);
+  free(x_clone);
   bitvector_t_free(t);
   bitvector_t_free(xor);
   
