@@ -128,7 +128,7 @@ inline bitvector_t *bitvector_t_fromHexString(char *string) {
   bitvector_t *bv = bitvector_t_alloc(length*4);
   if(bv == NULL) return NULL;
 
-  for(i = 0; i < length; i++) {
+  for(i = 0; string[i] != 0; i++) {
     uint64_t digit = hexchar_to_digit(string[(length - i) - 1]);
     if(digit == 16) break;
     bv->bits.pList[i>>4] |= digit << ((i&0xf)*4);

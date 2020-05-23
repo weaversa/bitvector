@@ -549,15 +549,16 @@ bitvector_t_slice_result <-
 
 //sequence_t *bitvector_t_split(bitvector_t *bv, uint32_t parts)
 let bitvector_t_split_spec (n : Int) (parts : Int) = do {
-  bv <- bitvector_t WRITE n "bv";
+  bv <- bitvector_t WRITE (eval_int {{ (`n : [32]) * `parts }}) "bv";
 
   execute [bv.p, from_cryptol {{ `parts : [32] }}];
 
   pseq <- pointer CONST (struct_t "sequence_t");
-  //seq' <- sequence_t' parts n "sequence'" pseq;
+  seq' <- sequence_t' parts n "sequence'" pseq;
 
-  //let (bvt, seqt') = (bv.t, seq'.t);
-  //postcond {{ split`{parts=parts} (from_list`{b=n} bv.bits.List) == [ from_list`{b=n/parts} bvi.bits.List | bvi <- seqt'.List ] }};
+  let (bvt, seqt') = (bv.t, seq'.t);
+
+  postcond {{ join [ from_list`{b=n} bvi.bits.List | bvi <- seqt'.List] == (from_list`{b=n*parts} bvt.bits.List) }};
 
   returns pseq;
 };
@@ -575,7 +576,7 @@ let sequence_t_join_spec (n : Int) (parts : Int) = do {
   pbv <- pointer CONST (struct_t "bitvector_t");
   bv' <- bitvector_t' (eval_int {{ (`n : [32]) * `parts }}) "bv'" pbv;
   let (bvt', seqt) = (bv'.t, seq.t);
-  
+
   postcond {{ join [ from_list`{b=n} bvi.bits.List | bvi <- seqt.List] == (from_list`{b=n*parts} bvt'.bits.List) }};
 
   returns pbv;
