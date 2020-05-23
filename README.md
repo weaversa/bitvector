@@ -14,5 +14,5 @@ https://github.com/weaversa/bitvector/blob/master/src/bitvector.c
 # SAW Proof
 
 There are formal correctness proofs for every function, written in
-(saw-script)[https://github.com/GaloisInc/saw-script]. However, the
+[saw-script](https://github.com/GaloisInc/saw-script). However, the
 proofs are only able to be done at specified bitvector widths.
