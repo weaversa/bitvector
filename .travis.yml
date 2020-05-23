@@ -3,7 +3,7 @@ jobs:
   include: 
     - 
       before_install: 
-        - wget https://saw.galois.com/builds/nightly/saw-0.4.0.99-2020-04-24-OSX-64.tar.gz
+        - wget https://saw.galois.com/builds/nightly/saw-0.4.0.99-2020-05-22-OSX-64.tar.gz
         - tar -xzf saw-0.4.0.99-2020-04-24-OSX-64.tar.gz
         - export PATH=$PATH:saw-0.4.0.99-2020-04-24-OSX-64/bin
         - saw --version
@@ -21,7 +21,7 @@ jobs:
       os: osx
     - 
       before_install: 
-        - wget https://saw.galois.com/builds/nightly/saw-0.4.0.99-2020-04-24-Ubuntu14.04-64.tar.gz
+        - wget https://saw.galois.com/builds/nightly/saw-0.4.0.99-2020-05-22-Ubuntu14.04-64.tar.gz
         - tar -xzf saw-0.4.0.99-2020-04-24-Ubuntu14.04-64.tar.gz
         - export PATH=saw-0.4.0.99-2020-04-24-Ubuntu14.04-64/bin:$PATH
         - saw --version
