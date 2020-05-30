@@ -3,11 +3,11 @@ jobs:
   include: 
     -
       addons: 
-      homebrew: 
-        packages: 
-          - SRI-CSL/sri-csl/yices2
-          - cvc4/cvc4/cvc4
-        taps: cvc4/cvc4
+        homebrew:
+          taps: cvc4/cvc4
+          packages: 
+            - SRI-CSL/sri-csl/yices2
+            - cvc4/cvc4/cvc4
       before_install: 
         - wget https://saw.galois.com/builds/nightly/saw-0.4.0.99-2020-05-21-OSX-64.tar.gz
         - tar -xzf saw-0.4.0.99-2020-05-21-OSX-64.tar.gz
