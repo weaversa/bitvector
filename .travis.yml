@@ -2,13 +2,8 @@
 jobs: 
   include: 
     -
-      addons: 
-        homebrew:
-          taps: cvc4/cvc4
-          packages: 
-            - SRI-CSL/sri-csl/yices2
-            - cvc4/cvc4/cvc4
-      before_install: 
+      before_install:
+        - export HOMEBREW_NO_AUTO_UPDATE=1
         - wget https://saw.galois.com/builds/nightly/saw-0.4.0.99-2020-05-21-OSX-64.tar.gz
         - tar -xzf saw-0.4.0.99-2020-05-21-OSX-64.tar.gz
         - export PATH=$PATH:$(pwd)/saw-0.4.0.99-2020-05-21-OSX-64/bin
@@ -17,8 +12,12 @@ jobs:
         - unzip -j z3-4.8.8-x64-osx-10.14.6.zip -d z3_downloaded
         - export PATH=$PATH:$(pwd)/z3_downloaded
         - z3 --version
+        - brew install SRI-CSL/sri-csl/yices2
         - yices-smt2 --version
-        - cvc4 --version
+# I don't know how to get cvc4 to install on osx. The following (as suggested on the cvc4 website) times out after 10 minutes.
+#        - brew tap cvc4/cvc4
+#        - brew install cvc4/cvc4/cvc4
+#        - cvc4 --version
       compiler: clang
       os: osx
     - 
