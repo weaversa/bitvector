@@ -37,7 +37,7 @@ inline void bitvector_t_zeroize(bitvector_t *bv) {
 }
 
 inline bitvector_t *bitvector_t_alloc(uint32_t nBits) {
-  bitvector_t *bv = malloc(1 * sizeof(bitvector_t));
+  bitvector_t *bv = (bitvector_t *) malloc(1 * sizeof(bitvector_t));
   bv->nBits = nBits;
 
   uint8_t ret = uint64_t_list_init(&bv->bits, BITS_TO_WORDS(bv->nBits));
@@ -151,7 +151,7 @@ inline char *bitvector_t_toHexString(bitvector_t *bv) {
   
   uint32_t length = bv->nBits/4 + ((bv->nBits%4) != 0);
 
-  char *string = malloc(length + 1);
+  char *string = (char *) malloc(length + 1);
   string[length] = 0;
 
   for(i = 0; i < length; i++) {
